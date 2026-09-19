@@ -125,6 +125,84 @@ class Settings(BaseSettings):
     )
 
     # ------------------------------------------------------------------
+    # API Security
+    # ------------------------------------------------------------------
+    api_key_enabled: bool = Field(
+        default=False,
+        description=(
+            "Enable API key authentication. Set to True in non-development environments. "
+            "Override with API_KEY_ENABLED."
+        ),
+    )
+    api_key: str = Field(
+        default="dev-insecure-key-change-me",
+        description=(
+            "Secret API key for authenticating requests. "
+            "MUST be overridden in production via API_KEY environment variable. "
+            "Never commit a real key to source control."
+        ),
+    )
+    api_key_header: str = Field(
+        default="X-API-Key",
+        description="HTTP header name used to carry the API key.",
+    )
+
+    # ------------------------------------------------------------------
+    # Rate Limiting
+    # ------------------------------------------------------------------
+    rate_limit_enabled: bool = Field(
+        default=True,
+        description="Enable SlowAPI rate limiting on the investigation endpoint.",
+    )
+    rate_limit_investigate: str = Field(
+        default="10/minute",
+        description="Rate limit for POST /incidents/investigate (SlowAPI format).",
+    )
+    rate_limit_default: str = Field(
+        default="60/minute",
+        description="Default rate limit applied to all other routes.",
+    )
+
+    # ------------------------------------------------------------------
+    # LLM Reliability
+    # ------------------------------------------------------------------
+    llm_timeout_seconds: float = Field(
+        default=30.0,
+        description="Per-call LLM timeout in seconds. 0 = no timeout.",
+    )
+    llm_max_retries: int = Field(
+        default=2,
+        description="Maximum number of retries on transient LLM errors.",
+    )
+    llm_retry_wait_seconds: float = Field(
+        default=2.0,
+        description="Initial wait between LLM retries (exponential backoff base).",
+    )
+
+    # ------------------------------------------------------------------
+    # Investigation Reports (persistence)
+    # ------------------------------------------------------------------
+    reports_dir: str = Field(
+        default="reports",
+        description=(
+            "Directory where investigation reports are persisted as JSON files. "
+            "Relative paths resolve from the project root."
+        ),
+    )
+    reports_max_age_days: int = Field(
+        default=30,
+        description="Reports older than this are eligible for cleanup.",
+    )
+
+    # ------------------------------------------------------------------
+    # Prompt versioning
+    # ------------------------------------------------------------------
+    prompt_version: str = Field(
+        default="v1",
+        description="Prompt template version tag recorded in every investigation report.",
+    )
+
+    # ------------------------------------------------------------------
     # Git Provider
     # ------------------------------------------------------------------
     git_repo_path: str = Field(

@@ -27,6 +27,9 @@ dependencies = [
     # Agent / LLM
     "langgraph>=0.2.0",
     "langchain-core>=0.3.0",
+    # Production hardening
+    "slowapi>=0.1.9",
+    "tenacity>=8.3.0",
 ]
 
 [project.optional-dependencies]
