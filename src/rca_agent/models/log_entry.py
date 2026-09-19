@@ -141,7 +141,7 @@ class LogSearchResult(BaseModel):
     """Container for search results returned by a log provider."""
 
     entries: list[LogEntry] = Field(default_factory=list)
-    total: int = Field(description="Number of entries returned.")
+    total: int = Field(default=0, description="Number of entries returned.")
     query: LogSearchQuery = Field(description="The query that produced this result.")
 
     @model_validator(mode="after")

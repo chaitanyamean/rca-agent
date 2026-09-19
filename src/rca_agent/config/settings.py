@@ -67,6 +67,41 @@ class Settings(BaseSettings):
     database_echo: bool = Field(default=False, description="Echo all SQL statements (debug).")
 
     # ------------------------------------------------------------------
+    # LLM / Agent
+    # ------------------------------------------------------------------
+    llm_provider: str = Field(
+        default="mock",
+        description=(
+            "LLM backend to use: 'mock' (tests/dev), 'openai', 'anthropic', 'ollama'. "
+            "Override with LLM_PROVIDER."
+        ),
+    )
+    llm_model: str = Field(
+        default="gpt-4o-mini",
+        description="Model name passed to the LLM provider (e.g. 'gpt-4o-mini', 'claude-3-haiku').",
+    )
+    llm_temperature: float = Field(
+        default=0.0,
+        description="LLM sampling temperature. 0 = deterministic.",
+    )
+    llm_max_tokens: int = Field(
+        default=4096,
+        description="Maximum tokens in the LLM response.",
+    )
+    agent_max_log_entries: int = Field(
+        default=50,
+        description="Maximum log entries fetched per tool call during investigation.",
+    )
+    agent_max_commits: int = Field(
+        default=20,
+        description="Maximum recent commits fetched during investigation.",
+    )
+    agent_similar_incidents_top_k: int = Field(
+        default=5,
+        description="Number of similar historical incidents retrieved from memory.",
+    )
+
+    # ------------------------------------------------------------------
     # Neo4j (Graph Memory)
     # ------------------------------------------------------------------
     neo4j_uri: str = Field(

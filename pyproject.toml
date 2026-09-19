@@ -24,6 +24,9 @@ dependencies = [
     # Memory layer
     "neo4j>=5.20.0",
     "numpy>=1.26.0",
+    # Agent / LLM
+    "langgraph>=0.2.0",
+    "langchain-core>=0.3.0",
 ]
 
 [project.optional-dependencies]
