@@ -47,6 +47,21 @@ class Settings(BaseSettings):
         description="Log output format: json | text.",
     )
 
+    # ------------------------------------------------------------------
+    # Log Provider
+    # ------------------------------------------------------------------
+    log_dir: str = Field(
+        default="logs",
+        description=(
+            "Directory (or single file path) scanned by LocalLogProvider. "
+            "Relative paths are resolved from the current working directory."
+        ),
+    )
+    log_max_lines: int = Field(
+        default=100_000,
+        description="Maximum lines read per log file to prevent unbounded memory use.",
+    )
+
 
 # Module-level singleton — import and use `settings` throughout the app.
 settings = Settings()
