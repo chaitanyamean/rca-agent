@@ -12,6 +12,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from enum import Enum
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -123,6 +124,16 @@ class RCAResult(BaseModel):
     evidence: list[EvidencePiece] = Field(
         default_factory=list,
         description="All evidence pieces considered, each labelled FACT/INFERENCE/UNKNOWN.",
+    )
+
+    # Structured evidence (Phase 7 — fully attributed, auditable)
+    structured_evidence: list[Any] = Field(
+        default_factory=list,
+        description=(
+            "Rich Evidence objects (Phase 7) with evidence_id, type, source, "
+            "timestamp, relevance, confidence, and full audit trail. "
+            "Type is list[Evidence] but uses Any to avoid circular imports."
+        ),
     )
 
     # History

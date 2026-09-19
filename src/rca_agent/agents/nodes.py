@@ -33,6 +33,7 @@ import logging
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
+from rca_agent.agents.evidence_correlator import EvidenceCorrelator
 from rca_agent.agents.llm_provider import LLMProvider
 from rca_agent.agents.tools import (
     get_git_diff,
@@ -386,7 +387,12 @@ def make_search_historical_node(llm: LLMProvider, memory: IncidentMemory, top_k:
 
 
 def make_correlate_evidence_node(llm: LLMProvider):
-    """Node 6 — synthesise all evidence into a coherent picture."""
+    """Node 6 — synthesise all evidence into a coherent picture.
+
+    Phase 7: also runs the EvidenceCorrelator to produce the fully-attributed,
+    auditable structured evidence corpus.
+    """
+    _correlator = EvidenceCorrelator()
 
     def node(state: dict) -> dict:
         incident = state["incident"]
@@ -394,6 +400,10 @@ def make_correlate_evidence_node(llm: LLMProvider):
         git_findings = state.get("git_findings", [])
         historical_findings = state.get("historical_findings", [])
         error_patterns = state.get("error_patterns", [])
+        raw_logs = state.get("raw_logs", [])
+        raw_commits = state.get("raw_commits", [])
+        similar_incidents = state.get("similar_incidents", [])
+        candidate_claims: list[str] = []  # not yet generated — empty at this stage
 
         all_findings = (
             ["LOG ANALYSIS:"] + log_findings +
@@ -436,10 +446,31 @@ def make_correlate_evidence_node(llm: LLMProvider):
             except (ValueError, KeyError):
                 pass
 
+        # ------------------------------------------------------------------
+        # Phase 7: Run the EvidenceCorrelator for structured, attributed evidence
+        # ------------------------------------------------------------------
+        symptoms = [s.description for s in (incident.symptoms or [])]
+        correlation_result = _correlator.correlate(
+            log_entries=raw_logs,
+            commits=raw_commits,
+            historical_incidents=similar_incidents,
+            symptoms=symptoms,
+            root_cause_claims=candidate_claims,
+            incident_start_time=incident.start_time,
+        )
+
         return {
             "correlation_summary": data.get("correlation_summary", "Correlation incomplete."),
             "evidence_pieces": evidence_pieces,
-            "investigation_notes": [f"[correlate] Summary: {data.get('correlation_summary', '')[:100]}"],
+            "structured_evidence": correlation_result.evidence,
+            "evidence_audit_trail": correlation_result.audit_trail,
+            "evidence_conflicts": correlation_result.conflicts,
+            "investigation_notes": [
+                f"[correlate] Summary: {data.get('correlation_summary', '')[:100]}",
+                f"[correlate] Structured evidence: {len(correlation_result.evidence)} pieces, "
+                f"confidence={correlation_result.overall_confidence:.2f}, "
+                f"conflicts={len(correlation_result.conflicts)}",
+            ],
         }
 
     return node
@@ -584,7 +615,12 @@ def make_validate_candidate_node(llm: LLMProvider):
 
 
 def make_generate_rca_node(llm: LLMProvider):
-    """Node 9 — produce the final structured RCAResult."""
+    """Node 9 — produce the final structured RCAResult.
+
+    Phase 7: re-runs EvidenceCorrelator with known root-cause claims so the
+    claim→evidence mapping is fully populated before the result is returned.
+    """
+    _correlator = EvidenceCorrelator()
 
     def node(state: dict) -> dict:
         incident = state["incident"]
@@ -641,6 +677,30 @@ def make_generate_rca_node(llm: LLMProvider):
         if confidence < 0.7 and not unknowns:
             unknowns = ["Root cause confidence below threshold — further investigation needed."]
 
+        # ------------------------------------------------------------------
+        # Phase 7: Final correlator run with known root-cause claims
+        # ------------------------------------------------------------------
+        claims = [validated_rc.summary] if validated_rc else []
+        final_correlation = _correlator.correlate(
+            log_entries=state.get("raw_logs", []),
+            commits=state.get("raw_commits", []),
+            historical_incidents=similar,
+            symptoms=[s.description for s in (incident.symptoms or [])],
+            root_cause_claims=claims,
+            incident_start_time=incident.start_time,
+        )
+
+        # Safeguard: if correlator has conflicts and status not already CONFLICTING
+        if final_correlation.has_conflicts and status == RCAStatus.PARTIAL:
+            status = RCAStatus.CONFLICTING_EVIDENCE
+
+        # Audit summary appended to unknowns if there are issues
+        audit_issues = final_correlation.unsupported_claims
+        if audit_issues:
+            unknowns = unknowns + [
+                f"Unsupported claim: '{c[:80]}'" for c in audit_issues
+            ]
+
         rca = RCAResult(
             incident_id=incident.incident_id,
             status=status,
@@ -649,6 +709,7 @@ def make_generate_rca_node(llm: LLMProvider):
             root_cause=validated_rc,
             confidence=confidence,
             evidence=evidence_pieces,
+            structured_evidence=final_correlation.evidence,
             similar_incidents=[s.incident_id for s in similar],
             contributing_factors=data.get("contributing_factors", []),
             unknowns=unknowns,
@@ -658,7 +719,15 @@ def make_generate_rca_node(llm: LLMProvider):
 
         return {
             "rca_result": rca,
-            "investigation_notes": [f"[generate_rca] Status={status.value}, confidence={confidence:.2f}"],
+            "structured_evidence": final_correlation.evidence,
+            "evidence_audit_trail": final_correlation.audit_trail,
+            "evidence_conflicts": final_correlation.conflicts,
+            "investigation_notes": [
+                f"[generate_rca] Status={status.value}, confidence={confidence:.2f}",
+                f"[generate_rca] Structured evidence: {len(final_correlation.evidence)} pieces, "
+                f"overall_confidence={final_correlation.overall_confidence:.2f}",
+                final_correlation.format_audit_summary(),
+            ],
         }
 
     return node

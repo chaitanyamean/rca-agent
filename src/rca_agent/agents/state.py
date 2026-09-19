@@ -122,6 +122,19 @@ class InvestigationState(TypedDict, total=False):
     """The final structured RCA — populated only by the last node."""
 
     # ------------------------------------------------------------------
+    # Phase 7 — Evidence correlation result
+    # ------------------------------------------------------------------
+    structured_evidence: list[Any]
+    """Rich Evidence objects produced by EvidenceCorrelator (Phase 7).
+    Stored as Any to avoid circular imports in the TypedDict definition."""
+
+    evidence_audit_trail: Annotated[list[str], operator.add]
+    """Step-by-step audit log from the EvidenceCorrelator."""
+
+    evidence_conflicts: list[Any]
+    """ConflictRecord objects detected by the correlator (Phase 7)."""
+
+    # ------------------------------------------------------------------
     # Internal bookkeeping
     # ------------------------------------------------------------------
     investigation_notes: Annotated[list[str], operator.add]
