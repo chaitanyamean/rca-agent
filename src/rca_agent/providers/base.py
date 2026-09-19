@@ -1,13 +1,16 @@
-"""Abstract base protocol for log providers.
+"""Abstract base protocols for RCA Agent providers.
 
 Any log provider — local files, remote APIs, cloud sinks — must satisfy
-this interface so that the RCA Agent remains source-agnostic.
+the LogProvider interface.  Any Git provider must satisfy GitProvider.
+Both are structural protocols so implementations do not need to inherit
+from them explicitly.
 """
 
 from __future__ import annotations
 
 from typing import Protocol, runtime_checkable
 
+from rca_agent.models.git_models import Commit, CommitDiff, GitCommitQuery
 from rca_agent.models.log_entry import LogEntry, LogSearchQuery, LogSearchResult
 
 
@@ -25,4 +28,57 @@ class LogProvider(Protocol):
 
     def get_log_by_id(self, log_id: str) -> LogEntry | None:
         """Return the single log entry with the given stable ID, or None."""
+        ...
+
+
+@runtime_checkable
+class GitProvider(Protocol):
+    """Structural protocol for all Git provider implementations.
+
+    All operations are **read-only**.  Implementations must never expose
+    write operations or arbitrary shell access.
+    """
+
+    def get_recent_commits(self, limit: int = 20) -> list[Commit]:
+        """Return the *limit* most recent commits, newest first."""
+        ...
+
+    def get_commit(self, commit_id: str) -> Commit:
+        """Return a single commit by its full or abbreviated SHA-1.
+
+        Raises
+        ------
+        ValueError
+            If *commit_id* is not found or is invalid.
+        """
+        ...
+
+    def get_diff(self, commit_id: str) -> list[CommitDiff]:
+        """Return per-file diffs for the given commit.
+
+        Raises
+        ------
+        ValueError
+            If *commit_id* is not found or is invalid.
+        """
+        ...
+
+    def get_files_changed(self, commit_id: str) -> list[str]:
+        """Return repository-relative paths of files changed in *commit_id*.
+
+        Raises
+        ------
+        ValueError
+            If *commit_id* is not found or is invalid.
+        """
+        ...
+
+    def search_commits(self, query: GitCommitQuery) -> list[Commit]:
+        """Return commits matching the search criteria in *query*."""
+        ...
+
+    def get_commits_between(
+        self, start_time: "datetime", end_time: "datetime"
+    ) -> list[Commit]:
+        """Return commits whose author date falls within [start_time, end_time]."""
         ...

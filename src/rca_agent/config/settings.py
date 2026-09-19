@@ -48,6 +48,21 @@ class Settings(BaseSettings):
     )
 
     # ------------------------------------------------------------------
+    # Git Provider
+    # ------------------------------------------------------------------
+    git_repo_path: str = Field(
+        default=".",
+        description=(
+            "Absolute or relative path to the target Git repository. "
+            "Never hardcode a specific application path here — set via environment variable."
+        ),
+    )
+    git_max_commits: int = Field(
+        default=500,
+        description="Maximum number of commits returned by get_recent_commits().",
+    )
+
+    # ------------------------------------------------------------------
     # Log Provider
     # ------------------------------------------------------------------
     log_dir: str = Field(
