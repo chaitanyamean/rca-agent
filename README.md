@@ -17,24 +17,27 @@ rca-agent/
 ├── src/rca_agent/
 │   ├── api/          # FastAPI application & route handlers
 │   ├── agents/       # LangGraph-based RCA agents  (future)
-│   ├── providers/    # Git, log, telemetry adapters  (future)
-│   ├── memory/       # Incident knowledge graph      (future)
+│   ├── providers/    # Git & log data source adapters
+│   ├── memory/       # Incident persistence (PostgreSQL)
 │   ├── models/       # Pydantic domain models
 │   ├── config/       # Environment-based settings
 │   └── utils/        # Shared utilities (logging, etc.)
+├── alembic/          # Database migrations
 ├── tests/            # pytest test suite
 ├── docs/             # Architecture & integration docs
 └── scripts/          # Dev/ops helper scripts
 ```
 
-### Future integrations (not yet implemented)
+### Integrations
 
-| Concern | Technology |
-|---|---|
-| Agent orchestration | LangGraph |
-| Persistent storage | PostgreSQL |
-| Knowledge graph | Neo4j |
-| LLM backend | OpenAI / Anthropic / local |
+| Concern | Technology | Status |
+|---|---|---|
+| Structured log analysis | LocalLogProvider (NDJSON) | ✅ Phase 2 |
+| Git intelligence | LocalGitProvider (subprocess) | ✅ Phase 3 |
+| Incident storage | PostgreSQL + SQLAlchemy + Alembic | ✅ Phase 4 |
+| Agent orchestration | LangGraph | future |
+| Knowledge graph | Neo4j | future |
+| LLM backend | OpenAI / Anthropic / local | future |
 
 ---
 
@@ -44,6 +47,7 @@ rca-agent/
 |---|---|
 | Python | 3.12 |
 | pip | 24+ |
+| PostgreSQL | 14+ |
 | Docker | 24+ (optional) |
 
 ---
@@ -53,11 +57,8 @@ rca-agent/
 ### 1 — Install
 
 ```bash
-# Create and activate a virtual environment
 python -m venv .venv
 source .venv/bin/activate        # Windows: .venv\Scripts\activate
-
-# Install the package with dev dependencies
 pip install -e ".[dev]"
 ```
 
@@ -65,10 +66,47 @@ pip install -e ".[dev]"
 
 ```bash
 cp .env.example .env
-# Edit .env as needed — defaults work out of the box for local dev
+# Edit .env — set DATABASE_URL to point at your PostgreSQL instance
 ```
 
-### 3 — Run
+### 3 — Database setup
+
+#### Option A — Docker (recommended for local dev)
+
+```bash
+docker run -d \
+  --name rca-postgres \
+  -e POSTGRES_USER=rca_agent \
+  -e POSTGRES_PASSWORD=rca_agent \
+  -e POSTGRES_DB=rca_agent \
+  -p 5432:5432 \
+  postgres:16-alpine
+```
+
+#### Option B — Existing PostgreSQL
+
+Create the database and user manually:
+
+```sql
+CREATE USER rca_agent WITH PASSWORD 'rca_agent';
+CREATE DATABASE rca_agent OWNER rca_agent;
+```
+
+#### Run migrations
+
+```bash
+alembic upgrade head
+```
+
+#### (Optional) Seed sample incidents
+
+```bash
+python scripts/seed_incidents.py
+```
+
+This inserts 5 realistic sample incidents for local development. The script is idempotent.
+
+### 4 — Run
 
 ```bash
 uvicorn rca_agent.main:app --reload
@@ -83,15 +121,39 @@ Interactive docs at <http://localhost:8000/docs>.
 
 ## Running tests
 
+Tests use an **in-memory SQLite database** — no PostgreSQL required to run the test suite.
+
 ```bash
 pytest
 ```
 
 ---
 
+## Database migrations
+
+Alembic is used for all schema changes.
+
+```bash
+# Apply all pending migrations
+alembic upgrade head
+
+# Roll back one migration
+alembic downgrade -1
+
+# Check current migration state
+alembic current
+
+# Generate a new migration from ORM model changes
+alembic revision --autogenerate -m "describe your change"
+```
+
+All migration files live in `alembic/versions/`.
+
+---
+
 ## Docker
 
-### Build and run
+### Build and run (application only)
 
 ```bash
 docker compose up --build
@@ -103,6 +165,23 @@ docker compose up --build
 curl http://localhost:8000/health
 # {"status":"ok","version":"0.1.0","environment":"development"}
 ```
+
+---
+
+## Environment variables
+
+| Variable | Default | Description |
+|---|---|---|
+| `DATABASE_URL` | `postgresql+psycopg2://rca_agent:rca_agent@localhost:5432/rca_agent` | Sync DB URL (Alembic, seed script) |
+| `DATABASE_URL_ASYNC` | `postgresql+asyncpg://rca_agent:rca_agent@localhost:5432/rca_agent` | Async DB URL (application runtime) |
+| `DATABASE_ECHO` | `false` | Log all SQL statements |
+| `GIT_REPO_PATH` | `.` | Path to the target Git repository |
+| `LOG_DIR` | `logs` | Directory or file for the log provider |
+| `LOG_LEVEL` | `INFO` | Application log level |
+| `ENVIRONMENT` | `development` | Runtime environment label |
+| `DEBUG` | `false` | Enable uvicorn reload and verbose logging |
+
+See `.env.example` for the full list.
 
 ---
 
@@ -135,10 +214,11 @@ mypy src
 
 ## Roadmap
 
-- [ ] Phase 2 — LangGraph agent scaffold
-- [ ] Phase 3 — Git provider integration
-- [ ] Phase 4 — Log provider integration
-- [ ] Phase 5 — PostgreSQL incident storage
+- [x] Phase 1 — FastAPI foundation, health endpoint
+- [x] Phase 2 — Structured log provider (NDJSON)
+- [x] Phase 3 — Git intelligence provider
+- [x] Phase 4 — Incident model & PostgreSQL storage
+- [ ] Phase 5 — LangGraph agent scaffold
 - [ ] Phase 6 — Neo4j knowledge graph
 - [ ] Phase 7 — `rke` integration & evaluation
 

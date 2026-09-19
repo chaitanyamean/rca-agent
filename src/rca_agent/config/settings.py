@@ -48,6 +48,25 @@ class Settings(BaseSettings):
     )
 
     # ------------------------------------------------------------------
+    # Database
+    # ------------------------------------------------------------------
+    database_url: str = Field(
+        default="postgresql+psycopg2://rca_agent:rca_agent@localhost:5432/rca_agent",
+        description=(
+            "SQLAlchemy database URL for PostgreSQL. "
+            "Override with DATABASE_URL environment variable. "
+            "Use 'postgresql+psycopg2://...' for sync (Alembic/seed) "
+            "and 'postgresql+asyncpg://...' for async (application runtime)."
+        ),
+    )
+    database_url_async: str = Field(
+        default="postgresql+asyncpg://rca_agent:rca_agent@localhost:5432/rca_agent",
+        description="Async variant of DATABASE_URL used at application runtime.",
+    )
+    database_pool_size: int = Field(default=5, description="SQLAlchemy connection pool size.")
+    database_echo: bool = Field(default=False, description="Echo all SQL statements (debug).")
+
+    # ------------------------------------------------------------------
     # Git Provider
     # ------------------------------------------------------------------
     git_repo_path: str = Field(

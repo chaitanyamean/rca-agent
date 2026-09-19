@@ -1,1 +1,1 @@
-"""Incident memory and knowledge-graph layer (added in a future phase)."""
+"""Incident memory and persistence layer."""
