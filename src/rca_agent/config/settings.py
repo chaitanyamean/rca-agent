@@ -67,6 +67,29 @@ class Settings(BaseSettings):
     database_echo: bool = Field(default=False, description="Echo all SQL statements (debug).")
 
     # ------------------------------------------------------------------
+    # Neo4j (Graph Memory)
+    # ------------------------------------------------------------------
+    neo4j_uri: str = Field(
+        default="bolt://localhost:7687",
+        description="Neo4j Bolt URI. Override with NEO4J_URI.",
+    )
+    neo4j_username: str = Field(default="neo4j", description="Neo4j username.")
+    neo4j_password: str = Field(default="rca_agent", description="Neo4j password.")
+    neo4j_database: str = Field(default="neo4j", description="Neo4j database name.")
+
+    # ------------------------------------------------------------------
+    # Vector Memory
+    # ------------------------------------------------------------------
+    vector_similarity_threshold: float = Field(
+        default=0.15,
+        description="Minimum cosine similarity score to consider two incidents related.",
+    )
+    vector_max_results: int = Field(
+        default=10,
+        description="Maximum number of similar incidents returned by vector search.",
+    )
+
+    # ------------------------------------------------------------------
     # Git Provider
     # ------------------------------------------------------------------
     git_repo_path: str = Field(

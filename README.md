@@ -35,8 +35,9 @@ rca-agent/
 | Structured log analysis | LocalLogProvider (NDJSON) | ✅ Phase 2 |
 | Git intelligence | LocalGitProvider (subprocess) | ✅ Phase 3 |
 | Incident storage | PostgreSQL + SQLAlchemy + Alembic | ✅ Phase 4 |
+| Graph memory | Neo4j (knowledge graph) | ✅ Phase 5 |
+| Semantic similarity | TF-IDF vector store (in-process) | ✅ Phase 5 |
 | Agent orchestration | LangGraph | future |
-| Knowledge graph | Neo4j | future |
 | LLM backend | OpenAI / Anthropic / local | future |
 
 ---
@@ -48,6 +49,7 @@ rca-agent/
 | Python | 3.12 |
 | pip | 24+ |
 | PostgreSQL | 14+ |
+| Neo4j | 5.x (Community or Enterprise) |
 | Docker | 24+ (optional) |
 
 ---
@@ -105,6 +107,35 @@ python scripts/seed_incidents.py
 ```
 
 This inserts 5 realistic sample incidents for local development. The script is idempotent.
+
+#### Neo4j setup
+
+Start Neo4j via Docker (included in `docker-compose.yml`):
+
+```bash
+docker compose up -d neo4j
+```
+
+Or run manually:
+
+```bash
+docker run -d \
+  --name rca-neo4j \
+  -e NEO4J_AUTH=neo4j/rca_agent \
+  -p 7474:7474 -p 7687:7687 \
+  neo4j:5.20-community
+```
+
+Neo4j Browser UI is available at <http://localhost:7474>.
+
+#### (Optional) Seed incident memory
+
+Loads 5 historical incidents into the graph and vector store:
+
+```bash
+python scripts/seed_memory.py           # in-memory demo (prints similarity results)
+python scripts/seed_memory.py --neo4j   # write to running Neo4j
+```
 
 ### 4 — Run
 
@@ -175,6 +206,12 @@ curl http://localhost:8000/health
 | `DATABASE_URL` | `postgresql+psycopg2://rca_agent:rca_agent@localhost:5432/rca_agent` | Sync DB URL (Alembic, seed script) |
 | `DATABASE_URL_ASYNC` | `postgresql+asyncpg://rca_agent:rca_agent@localhost:5432/rca_agent` | Async DB URL (application runtime) |
 | `DATABASE_ECHO` | `false` | Log all SQL statements |
+| `NEO4J_URI` | `bolt://localhost:7687` | Neo4j Bolt URI |
+| `NEO4J_USERNAME` | `neo4j` | Neo4j username |
+| `NEO4J_PASSWORD` | `rca_agent` | Neo4j password |
+| `NEO4J_DATABASE` | `neo4j` | Neo4j database name |
+| `VECTOR_SIMILARITY_THRESHOLD` | `0.15` | Minimum cosine similarity for retrieval |
+| `VECTOR_MAX_RESULTS` | `10` | Max similar incidents returned |
 | `GIT_REPO_PATH` | `.` | Path to the target Git repository |
 | `LOG_DIR` | `logs` | Directory or file for the log provider |
 | `LOG_LEVEL` | `INFO` | Application log level |
@@ -218,8 +255,8 @@ mypy src
 - [x] Phase 2 — Structured log provider (NDJSON)
 - [x] Phase 3 — Git intelligence provider
 - [x] Phase 4 — Incident model & PostgreSQL storage
-- [ ] Phase 5 — LangGraph agent scaffold
-- [ ] Phase 6 — Neo4j knowledge graph
+- [x] Phase 5 — Long-term incident memory (Neo4j graph + TF-IDF vector)
+- [ ] Phase 6 — LangGraph agent scaffold
 - [ ] Phase 7 — `rke` integration & evaluation
 
 ---

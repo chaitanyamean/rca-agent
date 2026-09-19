@@ -1,6 +1,79 @@
 version: "3.9"
 
+# ---------------------------------------------------------------------------
+# rca-agent local development stack
+#
+# Services:
+#   postgres   — incident storage (Phase 4)
+#   neo4j      — graph memory (Phase 5)
+#   rca-agent  — the API service
+#
+# Quick start:
+#   docker compose up -d postgres neo4j   # start backing services only
+#   docker compose up --build             # start everything
+# ---------------------------------------------------------------------------
+
 services:
+
+  # --------------------------------------------------------------------------
+  # PostgreSQL — incident persistent storage
+  # --------------------------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: rca-postgres
+    environment:
+      POSTGRES_USER: rca_agent
+      POSTGRES_PASSWORD: rca_agent
+      POSTGRES_DB: rca_agent
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rca_agent -d rca_agent"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # --------------------------------------------------------------------------
+  # Neo4j — incident knowledge graph
+  # --------------------------------------------------------------------------
+  neo4j:
+    image: neo4j:5.20-community
+    container_name: rca-neo4j
+    environment:
+      NEO4J_AUTH: neo4j/rca_agent
+      NEO4J_PLUGINS: '["apoc"]'
+      NEO4J_dbms_security_procedures_unrestricted: apoc.*
+      # Memory tuning for local development
+      NEO4J_server_memory_heap_initial__size: 256m
+      NEO4J_server_memory_heap_max__size: 512m
+    ports:
+      - "${NEO4J_HTTP_PORT:-7474}:7474"   # browser UI
+      - "${NEO4J_BOLT_PORT:-7687}:7687"   # Bolt protocol
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:7474",
+        ]
+      interval: 30s
+      timeout: 10s
+      start_period: 60s   # Neo4j takes a while to initialise
+      retries: 5
+    restart: unless-stopped
+
+  # --------------------------------------------------------------------------
+  # rca-agent API
+  # --------------------------------------------------------------------------
   rca-agent:
     build:
       context: .
@@ -16,9 +89,19 @@ services:
       DEBUG: ${DEBUG:-false}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       LOG_FORMAT: ${LOG_FORMAT:-json}
+      DATABASE_URL: postgresql+psycopg2://rca_agent:rca_agent@postgres:5432/rca_agent
+      DATABASE_URL_ASYNC: postgresql+asyncpg://rca_agent:rca_agent@postgres:5432/rca_agent
+      NEO4J_URI: bolt://neo4j:7687
+      NEO4J_USERNAME: neo4j
+      NEO4J_PASSWORD: rca_agent
     env_file:
       - path: .env
-        required: false   # allow running without a .env file
+        required: false
+    depends_on:
+      postgres:
+        condition: service_healthy
+      neo4j:
+        condition: service_healthy
     restart: unless-stopped
     healthcheck:
       test:
@@ -30,5 +113,10 @@ services:
         ]
       interval: 30s
       timeout: 5s
-      start_period: 10s
+      start_period: 15s
       retries: 3
+
+volumes:
+  postgres_data:
+  neo4j_data:
+  neo4j_logs:
