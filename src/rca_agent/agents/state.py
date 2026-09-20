@@ -25,6 +25,7 @@ from rca_agent.models.rca_result import (
     RCAResult,
     RCAStatus,
 )
+from rca_agent.models.trace_models import Trace
 
 
 class InvestigationState(TypedDict, total=False):
@@ -63,6 +64,9 @@ class InvestigationState(TypedDict, total=False):
 
     raw_commits: Annotated[list[Commit], operator.add]
     """Git commits retrieved during the investigation."""
+
+    raw_traces: Annotated[list[Trace], operator.add]
+    """Distributed traces retrieved from the trace backend (e.g. Jaeger)."""
 
     # ------------------------------------------------------------------
     # Analyze Logs node

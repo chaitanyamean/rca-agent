@@ -203,6 +203,36 @@ class Settings(BaseSettings):
     )
 
     # ------------------------------------------------------------------
+    # Trace Provider (Jaeger)
+    # ------------------------------------------------------------------
+    jaeger_base_url: str = Field(
+        default="http://localhost:16686",
+        description=(
+            "Base URL of the Jaeger query HTTP API (port 16686 by default). "
+            "In Docker Compose use http://jaeger:16686. "
+            "Set to empty string to disable trace retrieval."
+        ),
+    )
+    jaeger_timeout_seconds: float = Field(
+        default=10.0,
+        description="HTTP request timeout for Jaeger API calls (seconds).",
+    )
+    jaeger_service_name: str = Field(
+        default="rke-backend",
+        description=(
+            "Default service name used when searching Jaeger traces. "
+            "Set to the value of OTEL_SERVICE_NAME in the target application."
+        ),
+    )
+    jaeger_lookback_hours: float = Field(
+        default=2.0,
+        description=(
+            "Default time window (in hours) to search when no explicit "
+            "start/end time is provided to the trace provider."
+        ),
+    )
+
+    # ------------------------------------------------------------------
     # Git Provider
     # ------------------------------------------------------------------
     git_repo_path: str = Field(

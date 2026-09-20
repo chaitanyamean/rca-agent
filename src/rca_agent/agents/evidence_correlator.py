@@ -48,6 +48,7 @@ from rca_agent.models.log_entry import LogEntry
 from rca_agent.models.git_models import Commit
 from rca_agent.models.memory_models import SimilarIncident
 from rca_agent.models.rca_result import EvidenceStatement
+from rca_agent.models.trace_models import Trace, TraceStatus
 
 logger = logging.getLogger(__name__)
 
@@ -82,6 +83,7 @@ class EvidenceCorrelator:
         symptoms: list[str] | None = None,
         root_cause_claims: list[str] | None = None,
         incident_start_time: datetime | None = None,
+        traces: list[Trace] | None = None,
     ) -> EvidenceCorrelationResult:
         """Run the full evidence correlation pipeline.
 
@@ -99,6 +101,10 @@ class EvidenceCorrelator:
             Candidate root cause summary strings to validate against evidence.
         incident_start_time:
             Used to score commit recency (commits close in time score higher).
+        traces:
+            Distributed traces retrieved from a tracing backend (e.g. Jaeger).
+            Error and slow spans become FACT evidence; normal spans become
+            INFERENCE evidence about the request path.
         """
         audit: list[str] = []
         all_evidence: list[Evidence] = []
@@ -112,12 +118,14 @@ class EvidenceCorrelator:
         )
         hist_ev = self._evidence_from_historical(historical_incidents or [], audit)
         symptom_ev = self._evidence_from_symptoms(symptoms or [], audit)
+        trace_ev = self._evidence_from_traces(traces or [], audit)
 
-        all_evidence = log_ev + git_ev + hist_ev + symptom_ev
+        all_evidence = log_ev + git_ev + hist_ev + symptom_ev + trace_ev
         audit.append(
             f"[step1] Evidence assembled: "
             f"{len(log_ev)} log, {len(git_ev)} git, "
-            f"{len(hist_ev)} historical, {len(symptom_ev)} symptom "
+            f"{len(hist_ev)} historical, {len(symptom_ev)} symptom, "
+            f"{len(trace_ev)} trace "
             f"= {len(all_evidence)} total."
         )
 
@@ -334,6 +342,120 @@ class EvidenceCorrelator:
                 raw_content=symptom[:500],
             ))
         audit.append(f"[symptoms] {len(symptoms)} symptoms → {len(result)} evidence pieces.")
+        return result
+
+    def _evidence_from_traces(
+        self,
+        traces: list[Trace],
+        audit: list[str],
+    ) -> list[Evidence]:
+        """Convert distributed traces into Evidence objects.
+
+        Strategy
+        --------
+        * Error spans   → EvidenceStatement.FACT, high relevance (0.95)
+        * Slow spans    → EvidenceStatement.FACT, medium-high relevance (0.8)
+        * Normal spans  → EvidenceStatement.INFERENCE, medium relevance (0.5)
+          (they establish the call path but don't directly indicate a problem)
+        * If a trace has both error and slow spans, only the most informative
+          evidence pieces are emitted to avoid flooding the corpus.
+
+        The ``source_ref`` is always the Jaeger trace ID so the RCA report
+        can reference it directly.  The ``source`` is human-readable so
+        it is immediately useful in the report text.
+        """
+        if not traces:
+            audit.append("[traces] No traces provided → 0 evidence pieces.")
+            return []
+
+        result: list[Evidence] = []
+
+        for trace in traces:
+            trace_ref = trace.trace_id
+            root = trace.root_span
+
+            # --- Error spans (FACT, high relevance) ----------------------
+            for span in trace.error_spans[:5]:  # cap to avoid flooding
+                exc_msg = span.exception_message or span.status_message or "Unknown error"
+                description = (
+                    f"Span '{span.operation_name}' in service '{span.service_name}' "
+                    f"failed after {span.duration_ms:.0f} ms. "
+                    f"Error: {exc_msg[:200]}"
+                )
+                # Include relevant span attributes as context
+                db_stmt = span.attributes.get("db.statement", "")
+                if db_stmt:
+                    description += f" | db.statement={str(db_stmt)[:120]}"
+
+                result.append(Evidence(
+                    evidence_id=str(uuid.uuid4()),
+                    evidence_type=EvidenceType.TRACE,
+                    source=f"trace {trace_ref[:16]} (Jaeger)",
+                    source_ref=trace_ref,
+                    timestamp=span.start_time,
+                    description=description,
+                    relevance=0.95,
+                    confidence=0.90,  # directly observed in the trace backend
+                    statement_type=EvidenceStatement.FACT,
+                    is_historical=False,
+                    raw_content=trace.format_summary()[:500],
+                ))
+
+            # --- Slow spans (FACT, medium-high relevance) ----------------
+            for span in trace.slow_spans[:3]:
+                if span.is_error:
+                    continue  # already captured above
+                description = (
+                    f"Span '{span.operation_name}' in service '{span.service_name}' "
+                    f"was slow: {span.duration_ms:.0f} ms "
+                    f"(threshold: 1 000 ms)."
+                )
+                db_system = span.attributes.get("db.system", "")
+                if db_system:
+                    description += f" | db.system={db_system}"
+                db_op = span.attributes.get("db.operation", "")
+                if db_op:
+                    description += f" | db.operation={db_op}"
+
+                result.append(Evidence(
+                    evidence_id=str(uuid.uuid4()),
+                    evidence_type=EvidenceType.TRACE,
+                    source=f"trace {trace_ref[:16]} (Jaeger)",
+                    source_ref=trace_ref,
+                    timestamp=span.start_time,
+                    description=description,
+                    relevance=0.80,
+                    confidence=0.85,
+                    statement_type=EvidenceStatement.FACT,
+                    is_historical=False,
+                    raw_content=trace.format_summary()[:500],
+                ))
+
+            # --- Root span summary (INFERENCE, medium relevance) ---------
+            # Provides the overall request path even when no errors/slowness
+            if root and not trace.error_spans and not trace.slow_spans:
+                result.append(Evidence(
+                    evidence_id=str(uuid.uuid4()),
+                    evidence_type=EvidenceType.TRACE,
+                    source=f"trace {trace_ref[:16]} (Jaeger)",
+                    source_ref=trace_ref,
+                    timestamp=root.start_time,
+                    description=(
+                        f"Request '{root.operation_name}' completed in "
+                        f"{trace.total_duration_ms:.0f} ms across "
+                        f"{len(trace.spans)} spans "
+                        f"({', '.join(trace.service_names)})."
+                    ),
+                    relevance=0.50,
+                    confidence=0.80,
+                    statement_type=EvidenceStatement.INFERENCE,
+                    is_historical=False,
+                    raw_content=trace.format_summary()[:500],
+                ))
+
+        audit.append(
+            f"[traces] Converted {len(traces)} trace(s) → {len(result)} evidence pieces."
+        )
         return result
 
     # ------------------------------------------------------------------

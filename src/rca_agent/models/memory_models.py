@@ -40,6 +40,9 @@ class RelationshipType(str, Enum):
     SIMILAR_TO = "SIMILAR_TO"               # Incident ↔ Incident (undirected)
     SHARES_ROOT_CAUSE = "SHARES_ROOT_CAUSE" # Incident ↔ Incident (same root cause)
     INVOLVES = "INVOLVES"                   # RootCause → Service
+    HAS_TRACE = "HAS_TRACE"                 # Incident → TraceRef (distributed trace ID)
+    HAS_ERROR = "HAS_ERROR"                 # Incident → ErrorRef (exception type/message)
+    OBSERVED_IN = "OBSERVED_IN"             # Incident → Environment node
 
 
 # ---------------------------------------------------------------------------
@@ -149,6 +152,49 @@ class ResolutionNode(BaseModel):
             "resolution_id": self.resolution_id,
             "summary": self.summary,
             "resolved_by": self.resolved_by,
+        }
+
+
+class TraceRefNode(BaseModel):
+    """A distributed trace reference stored in the knowledge graph.
+
+    Stores the trace ID and key metadata extracted from the RCA so future
+    investigations can correlate incidents to specific trace identifiers
+    without re-querying the tracing backend.
+    """
+    trace_id: str = Field(description="Distributed trace identifier (e.g. Jaeger trace ID).")
+    service_name: str = Field(default="", description="Service that produced the trace.")
+    operation_name: str = Field(default="", description="Root span operation name.")
+    has_error: bool = Field(default=False, description="True if the trace contains error spans.")
+    duration_ms: float = Field(default=0.0, ge=0.0, description="End-to-end trace duration in milliseconds.")
+
+    def to_properties(self) -> dict[str, Any]:
+        return {
+            "trace_id": self.trace_id,
+            "service_name": self.service_name,
+            "operation_name": self.operation_name,
+            "has_error": self.has_error,
+            "duration_ms": self.duration_ms,
+        }
+
+
+class ErrorRefNode(BaseModel):
+    """A canonical error/exception type stored in the knowledge graph.
+
+    Groups error observations by type so the graph can reveal patterns like
+    "this exception class has caused 3 separate incidents".
+    """
+    error_id: str = Field(description="Stable slug derived from the error type (e.g. 'sqlexception-pool-timeout').")
+    error_type: str = Field(description="Exception class or error category.")
+    message_summary: str = Field(default="", description="Representative error message (truncated, no secrets).")
+    service_name: str = Field(default="", description="Service that produced this error.")
+
+    def to_properties(self) -> dict[str, Any]:
+        return {
+            "error_id": self.error_id,
+            "error_type": self.error_type,
+            "message_summary": self.message_summary,
+            "service_name": self.service_name,
         }
 
 

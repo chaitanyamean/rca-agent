@@ -47,6 +47,9 @@ class VectorMemoryProvider(Protocol):
         root_cause_summary: str = "",
         application: str = "",
         severity: str = "",
+        contributing_factors: str = "",
+        resolution_summary: str = "",
+        symptoms: str = "",
     ) -> None:
         """Add or update an incident in the vector index."""
         ...
@@ -140,8 +143,18 @@ class TfidfVectorProvider:
         root_cause_summary: str = "",
         application: str = "",
         severity: str = "",
+        contributing_factors: str = "",
+        resolution_summary: str = "",
+        symptoms: str = "",
     ) -> None:
-        text = f"{title} {description} {root_cause_summary}".strip()
+        text = " ".join(filter(None, [
+            title,
+            description,
+            root_cause_summary,
+            contributing_factors,
+            resolution_summary,
+            symptoms,
+        ])).strip()
         self._docs[incident_id] = {
             "text": text,
             "title": title,

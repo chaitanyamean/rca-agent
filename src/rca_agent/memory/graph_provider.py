@@ -23,12 +23,14 @@ from typing import Any, Protocol, runtime_checkable
 from rca_agent.models.memory_models import (
     CommitNode,
     DeploymentNode,
+    ErrorRefNode,
     IncidentNode,
     MemoryRelationship,
     RelationshipType,
     ResolutionNode,
     RootCauseNode,
     ServiceNode,
+    TraceRefNode,
 )
 
 logger = logging.getLogger(__name__)
@@ -66,6 +68,14 @@ class GraphMemoryProvider(Protocol):
 
     def store_resolution(self, node: ResolutionNode) -> None:
         """Persist a resolution node (upsert by resolution_id)."""
+        ...
+
+    def store_trace_ref(self, node: TraceRefNode) -> None:
+        """Persist a trace reference node (upsert by trace_id)."""
+        ...
+
+    def store_error_ref(self, node: ErrorRefNode) -> None:
+        """Persist an error reference node (upsert by error_id)."""
         ...
 
     def add_relationship(self, rel: MemoryRelationship) -> None:
@@ -124,6 +134,8 @@ class InMemoryGraphProvider:
         self._commits: dict[str, CommitNode] = {}
         self._deployments: dict[str, DeploymentNode] = {}
         self._resolutions: dict[str, ResolutionNode] = {}
+        self._trace_refs: dict[str, TraceRefNode] = {}
+        self._error_refs: dict[str, ErrorRefNode] = {}
         self._relationships: list[MemoryRelationship] = []
 
     # ---- Write -----------------------------------------------------------
@@ -145,6 +157,12 @@ class InMemoryGraphProvider:
 
     def store_resolution(self, node: ResolutionNode) -> None:
         self._resolutions[node.resolution_id] = node
+
+    def store_trace_ref(self, node: TraceRefNode) -> None:
+        self._trace_refs[node.trace_id] = node
+
+    def store_error_ref(self, node: ErrorRefNode) -> None:
+        self._error_refs[node.error_id] = node
 
     def add_relationship(self, rel: MemoryRelationship) -> None:
         # Enum validation is enforced at the Pydantic model level; this is a
@@ -313,6 +331,20 @@ class Neo4jGraphProvider:
             props=node.to_properties(),
         )
 
+    def store_trace_ref(self, node: TraceRefNode) -> None:
+        self._run(
+            "MERGE (t:TraceRef {trace_id: $trace_id}) SET t += $props",
+            trace_id=node.trace_id,
+            props=node.to_properties(),
+        )
+
+    def store_error_ref(self, node: ErrorRefNode) -> None:
+        self._run(
+            "MERGE (e:ErrorRef {error_id: $error_id}) SET e += $props",
+            error_id=node.error_id,
+            props=node.to_properties(),
+        )
+
     def add_relationship(self, rel: MemoryRelationship) -> None:
         if not isinstance(rel.relationship_type, RelationshipType):
             raise ValueError(
@@ -326,11 +358,13 @@ class Neo4jGraphProvider:
             MATCH (from) WHERE
                 from.incident_id = $from_id OR from.service_id = $from_id OR
                 from.root_cause_id = $from_id OR from.commit_sha = $from_id OR
-                from.deployment_id = $from_id OR from.resolution_id = $from_id
+                from.deployment_id = $from_id OR from.resolution_id = $from_id OR
+                from.trace_id = $from_id OR from.error_id = $from_id
             MATCH (to) WHERE
                 to.incident_id = $to_id OR to.service_id = $to_id OR
                 to.root_cause_id = $to_id OR to.commit_sha = $to_id OR
-                to.deployment_id = $to_id OR to.resolution_id = $to_id
+                to.deployment_id = $to_id OR to.resolution_id = $to_id OR
+                to.trace_id = $to_id OR to.error_id = $to_id
             MERGE (from)-[r:{rel_type}]->(to)
             SET r += $props
             """,

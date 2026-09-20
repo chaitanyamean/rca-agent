@@ -32,9 +32,10 @@ import logging
 from rca_agent.agents.llm_provider import LLMProvider
 from rca_agent.agents.rca_graph import build_rca_graph
 from rca_agent.memory.incident_memory import IncidentMemory
+from rca_agent.memory.rca_memory_writer import RCAMemoryWriter
 from rca_agent.models.incident import Incident
 from rca_agent.models.rca_result import RCAResult, RCAStatus
-from rca_agent.providers.base import GitProvider, LogProvider
+from rca_agent.providers.base import GitProvider, LogProvider, TraceProvider
 
 logger = logging.getLogger(__name__)
 
@@ -65,6 +66,12 @@ class RCAAgent:
         Cap on recent commits retrieved.
     similar_incidents_top_k:
         Number of similar historical incidents to retrieve.
+    trace_provider:
+        Optional ``TraceProvider`` (e.g. ``JaegerTraceProvider``).
+    auto_store_rca:
+        When True (default), the completed RCA is automatically persisted
+        to ``memory`` via ``RCAMemoryWriter`` at the end of ``investigate()``.
+        Set to False to disable automatic persistence (e.g. for dry-runs).
     """
 
     def __init__(
@@ -77,6 +84,8 @@ class RCAAgent:
         max_log_entries: int = 50,
         max_commits: int = 20,
         similar_incidents_top_k: int = 5,
+        trace_provider: TraceProvider | None = None,
+        auto_store_rca: bool = True,
     ) -> None:
         self._graph = build_rca_graph(
             llm=llm,
@@ -86,8 +95,12 @@ class RCAAgent:
             max_log_entries=max_log_entries,
             max_commits=max_commits,
             similar_incidents_top_k=similar_incidents_top_k,
+            trace_provider=trace_provider,
         )
         self._llm = llm
+        self._memory = memory
+        self._auto_store_rca = auto_store_rca
+        self._memory_writer = RCAMemoryWriter(memory)
 
     def investigate(self, incident: Incident) -> RCAResult:
         """Run the full RCA investigation workflow for *incident*.
@@ -144,4 +157,17 @@ class RCAAgent:
             result.status.value,
             result.confidence,
         )
+
+        # Persist the completed RCA to long-term incident memory so it is
+        # available as historical evidence for future investigations.
+        if self._auto_store_rca:
+            try:
+                self._memory_writer.store(incident, result)
+            except Exception as exc:  # noqa: BLE001
+                # Memory write failures must never break the investigation
+                # response — the RCA result is still returned to the caller.
+                logger.warning(
+                    "RCAAgent: could not persist RCA to memory (non-fatal): %s", exc
+                )
+
         return result

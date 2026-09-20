@@ -128,6 +128,26 @@ def _build_git_provider():
         return _NoOpGitProvider()
 
 
+def _build_trace_provider():
+    """Return a JaegerTraceProvider when Jaeger is configured, or None.
+
+    Returns None when ``settings.jaeger_base_url`` is empty so the
+    investigation continues without trace evidence rather than failing.
+    """
+    if not settings.jaeger_base_url or not settings.jaeger_base_url.strip():
+        logger.debug("Jaeger base URL not configured — trace provider disabled")
+        return None
+    try:
+        from rca_agent.providers.jaeger_trace_provider import JaegerTraceProvider
+        return JaegerTraceProvider(
+            base_url=settings.jaeger_base_url,
+            timeout_seconds=settings.jaeger_timeout_seconds,
+        )
+    except Exception as exc:
+        logger.warning("Could not build trace provider: %s", exc)
+        return None
+
+
 def _build_llm_provider():
     """Return the configured LLM provider wrapped with resilience."""
     if settings.llm_provider == "mock":
@@ -213,6 +233,7 @@ async def investigate(
     llm = _build_llm_provider()
     log_provider = _build_log_provider(body.application)
     git_provider = _build_git_provider()
+    trace_provider = _build_trace_provider()
     memory = IncidentMemory(
         graph=InMemoryGraphProvider(),
         vector=TfidfVectorProvider(),
@@ -227,6 +248,7 @@ async def investigate(
         max_log_entries=settings.agent_max_log_entries,
         max_commits=settings.agent_max_commits,
         similar_incidents_top_k=settings.agent_similar_incidents_top_k,
+        trace_provider=trace_provider,
     )
 
     # Run investigation with provider failure isolation

@@ -53,7 +53,8 @@ from rca_agent.models.rca_result import (
     RCAResult,
     RCAStatus,
 )
-from rca_agent.providers.base import GitProvider, LogProvider
+from rca_agent.models.trace_models import Trace, TraceSearchQuery, TraceStatus
+from rca_agent.providers.base import GitProvider, LogProvider, TraceProvider
 
 logger = logging.getLogger(__name__)
 
@@ -162,8 +163,9 @@ def make_retrieve_evidence_node(
     git_provider: GitProvider,
     max_log_entries: int = 50,
     max_commits: int = 20,
+    trace_provider: TraceProvider | None = None,
 ):
-    """Node 2 — fetch logs and commits using the extracted search terms."""
+    """Node 2 — fetch logs, commits, and traces using the extracted search terms."""
 
     def node(state: dict) -> dict:
         incident = state["incident"]
@@ -196,14 +198,38 @@ def make_retrieve_evidence_node(
 
         commits = get_recent_commits(git_provider, limit=max_commits)
 
+        # ---- Trace retrieval (optional) ---------------------------------
+        traces: list[Trace] = []
+        trace_note = "no trace provider configured"
+        if trace_provider is not None:
+            try:
+                query = TraceSearchQuery(
+                    service=incident.application,
+                    start_time=start,
+                    end_time=end,
+                    limit=20,
+                )
+                trace_result = trace_provider.search_traces(query)
+                traces = trace_result.traces
+                trace_note = (
+                    f"{len(traces)} traces retrieved "
+                    f"({sum(len(t.error_spans) for t in traces)} error spans, "
+                    f"{sum(len(t.slow_spans) for t in traces)} slow spans)"
+                )
+                logger.info("Trace retrieval: %s", trace_note)
+            except Exception as exc:  # noqa: BLE001
+                trace_note = f"trace retrieval failed: {exc}"
+                logger.warning("Node 2 trace retrieval failed: %s", exc)
+
         notes = [
             f"[retrieve] {log_result.total} ERROR logs, {warn_result.total} WARN logs, "
-            f"{len(commits)} commits fetched."
+            f"{len(commits)} commits, {trace_note}."
         ]
 
         return {
             "raw_logs": log_result.entries + warn_result.entries,
             "raw_commits": commits,
+            "raw_traces": traces,
             "investigation_notes": notes,
         }
 
@@ -457,6 +483,7 @@ def make_correlate_evidence_node(llm: LLMProvider):
             symptoms=symptoms,
             root_cause_claims=candidate_claims,
             incident_start_time=incident.start_time,
+            traces=state.get("raw_traces", []),
         )
 
         return {
@@ -688,6 +715,7 @@ def make_generate_rca_node(llm: LLMProvider):
             symptoms=[s.description for s in (incident.symptoms or [])],
             root_cause_claims=claims,
             incident_start_time=incident.start_time,
+            traces=state.get("raw_traces", []),
         )
 
         # Safeguard: if correlator has conflicts and status not already CONFLICTING

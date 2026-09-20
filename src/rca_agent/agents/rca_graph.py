@@ -44,7 +44,7 @@ from rca_agent.agents.nodes import (
 )
 from rca_agent.agents.state import InvestigationState
 from rca_agent.memory.incident_memory import IncidentMemory
-from rca_agent.providers.base import GitProvider, LogProvider
+from rca_agent.providers.base import GitProvider, LogProvider, TraceProvider
 
 
 def build_rca_graph(
@@ -56,6 +56,7 @@ def build_rca_graph(
     max_log_entries: int = 50,
     max_commits: int = 20,
     similar_incidents_top_k: int = 5,
+    trace_provider: TraceProvider | None = None,
 ):
     """Construct and compile the RCA investigation LangGraph.
 
@@ -75,6 +76,10 @@ def build_rca_graph(
         Cap on recent commits fetched.
     similar_incidents_top_k:
         Number of historical incidents to retrieve.
+    trace_provider:
+        Optional ``TraceProvider`` implementation.  When provided, Node 2
+        retrieves distributed traces from the backend (e.g. Jaeger) and
+        includes them as TRACE evidence in the correlation pipeline.
 
     Returns
     -------
@@ -96,6 +101,7 @@ def build_rca_graph(
             llm, log_provider, git_provider,
             max_log_entries=max_log_entries,
             max_commits=max_commits,
+            trace_provider=trace_provider,
         ),
     )
     graph.add_node(

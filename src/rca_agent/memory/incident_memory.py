@@ -33,6 +33,7 @@ from rca_agent.models.incident import Incident
 from rca_agent.models.memory_models import (
     CommitNode,
     DeploymentNode,
+    ErrorRefNode,
     IncidentMemorySnapshot,
     IncidentNode,
     MemoryRelationship,
@@ -41,6 +42,7 @@ from rca_agent.models.memory_models import (
     RootCauseNode,
     ServiceNode,
     SimilarIncident,
+    TraceRefNode,
 )
 
 logger = logging.getLogger(__name__)
@@ -200,7 +202,16 @@ class IncidentMemory:
                 relationship_type=RelationshipType.RESOLVED_BY,
             ))
 
-        # Vector index
+        # Vector index — include contributing factors, resolution, and symptoms
+        # for richer semantic similarity matching in future investigations.
+        symptoms_text = " ".join(s.description for s in (incident.symptoms or []))
+        contributing_text = " ".join(incident.contributing_factors or [])
+        resolution_text = ""
+        if incident.resolution:
+            resolution_text = incident.resolution.summary
+        elif resolution_summary:
+            resolution_text = resolution_summary
+
         self._vector.index_incident(
             incident_id=incident.incident_id,
             title=incident.title,
@@ -208,6 +219,9 @@ class IncidentMemory:
             root_cause_summary=rc_text,
             application=incident.application,
             severity=incident.severity.value,
+            contributing_factors=contributing_text,
+            resolution_summary=resolution_text,
+            symptoms=symptoms_text,
         )
 
         # Auto-link SIMILAR_TO edges

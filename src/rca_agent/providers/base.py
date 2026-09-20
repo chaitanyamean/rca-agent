@@ -2,16 +2,24 @@
 
 Any log provider — local files, remote APIs, cloud sinks — must satisfy
 the LogProvider interface.  Any Git provider must satisfy GitProvider.
-Both are structural protocols so implementations do not need to inherit
+Any tracing backend must satisfy TraceProvider.
+All are structural protocols so implementations do not need to inherit
 from them explicitly.
 """
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Protocol, runtime_checkable
 
 from rca_agent.models.git_models import Commit, CommitDiff, GitCommitQuery
 from rca_agent.models.log_entry import LogEntry, LogSearchQuery, LogSearchResult
+from rca_agent.models.trace_models import (
+    Span,
+    Trace,
+    TraceSearchQuery,
+    TraceSearchResult,
+)
 
 
 @runtime_checkable
@@ -81,4 +89,54 @@ class GitProvider(Protocol):
         self, start_time: "datetime", end_time: "datetime"
     ) -> list[Commit]:
         """Return commits whose author date falls within [start_time, end_time]."""
+        ...
+
+
+@runtime_checkable
+class TraceProvider(Protocol):
+    """Structural protocol for all distributed trace provider implementations.
+
+    Implementations query a tracing backend (Jaeger, Grafana Tempo, Zipkin, …)
+    and return generic ``Trace`` / ``Span`` objects.  All operations are
+    **read-only**.
+    """
+
+    def get_trace(self, trace_id: str) -> Trace | None:
+        """Return the complete trace for *trace_id*, or ``None`` if not found.
+
+        Parameters
+        ----------
+        trace_id:
+            A 16-byte (32 hex character) trace identifier.
+
+        Returns
+        -------
+        Trace | None
+            The full trace including all spans, or ``None`` when the trace
+            does not exist in the backend.
+        """
+        ...
+
+    def search_traces(self, query: TraceSearchQuery) -> TraceSearchResult:
+        """Return traces matching the criteria in *query*.
+
+        Results are ordered newest-first (by root span start time).
+        Implementations must respect ``query.limit``.
+        """
+        ...
+
+    def get_trace_spans(self, trace_id: str) -> list[Span]:
+        """Return all spans for *trace_id*, or an empty list if not found.
+
+        This is a convenience wrapper around ``get_trace()`` for callers
+        that only need the span list.
+        """
+        ...
+
+    def get_failed_spans(self, trace_id: str) -> list[Span]:
+        """Return only the ERROR-status spans for *trace_id*.
+
+        Returns an empty list when the trace does not exist or has no errors.
+        This is the primary entry point for failure investigation workflows.
+        """
         ...

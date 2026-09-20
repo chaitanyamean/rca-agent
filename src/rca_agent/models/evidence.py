@@ -45,6 +45,7 @@ class EvidenceType(str, Enum):
     DEPLOYMENT = "DEPLOYMENT"             # A deployment event or record
     SERVICE = "SERVICE"                   # Service metadata / topology
     USER_REPORTED_SYMPTOM = "USER_REPORTED_SYMPTOM"  # User or alert-reported symptom
+    TRACE = "TRACE"                       # Distributed trace / span from a tracing backend
 
 
 class Evidence(BaseModel):
