@@ -2,72 +2,172 @@
   {
     "case_id": "eval-001",
     "description": "Classic database connection pool exhaustion on payment service",
-    "tags": ["database", "connection_pool", "critical"],
+    "tags": [
+      "database",
+      "connection_pool",
+      "critical"
+    ],
     "incident": {
       "incident_id": "eval-001-incident",
       "application": "payments-api",
       "environment": "production",
-      "title": "Payments API returning HTTP 500 — connection pool exhausted",
+      "title": "Payments API returning HTTP 500 \u2014 connection pool exhausted",
       "description": "All POST /api/payments requests are failing with HTTP 500. Logs show SQLException: connection pool exhausted.",
       "severity": "critical",
       "status": "open",
       "start_time": "2026-09-19T10:00:00Z",
-      "affected_services": ["payments-api"]
+      "affected_services": [
+        "payments-api"
+      ]
     },
     "mock_logs": [
-      {"level": "ERROR", "service": "payments-api", "message": "SQLException: connection pool exhausted — no available connections after 5000ms", "exception": "SQLException", "minutes_ago": 5},
-      {"level": "ERROR", "service": "payments-api", "message": "SQLException: connection pool exhausted — no available connections after 5000ms", "exception": "SQLException", "minutes_ago": 10},
-      {"level": "ERROR", "service": "payments-api", "message": "SQLException: connection pool exhausted — no available connections after 5000ms", "exception": "SQLException", "minutes_ago": 15},
-      {"level": "WARN",  "service": "payments-api", "message": "Connection acquisition time > 3000ms, pool may be under pressure", "minutes_ago": 20}
+      {
+        "level": "ERROR",
+        "service": "payments-api",
+        "message": "SQLException: connection pool exhausted \u2014 no available connections after 5000ms",
+        "exception": "SQLException",
+        "minutes_ago": 5
+      },
+      {
+        "level": "ERROR",
+        "service": "payments-api",
+        "message": "SQLException: connection pool exhausted \u2014 no available connections after 5000ms",
+        "exception": "SQLException",
+        "minutes_ago": 10
+      },
+      {
+        "level": "ERROR",
+        "service": "payments-api",
+        "message": "SQLException: connection pool exhausted \u2014 no available connections after 5000ms",
+        "exception": "SQLException",
+        "minutes_ago": 15
+      },
+      {
+        "level": "WARN",
+        "service": "payments-api",
+        "message": "Connection acquisition time > 3000ms, pool may be under pressure",
+        "minutes_ago": 20
+      }
     ],
     "mock_commits": [
-      {"subject": "feat: reduce connection pool size from 20 to 5 for cost savings", "minutes_ago": 45, "files": ["app/database.py"]}
+      {
+        "subject": "feat: reduce connection pool size from 20 to 5 for cost savings",
+        "minutes_ago": 45,
+        "files": [
+          "app/database.py"
+        ]
+      }
     ],
     "mock_historical_incidents": [],
-    "expected_root_cause_keywords": ["connection", "pool", "exhausted", "database"],
-    "expected_affected_services": ["payments-api"],
-    "expected_evidence_types": ["LOG", "GIT"],
+    "expected_root_cause_keywords": [
+      "connection",
+      "pool",
+      "exhausted",
+      "database"
+    ],
+    "expected_affected_services": [
+      "payments-api"
+    ],
+    "expected_evidence_types": [
+      "LOG",
+      "GIT"
+    ],
     "expected_similar_incident_ids": [],
-    "expected_resolution_keywords": ["pool", "size", "increase", "revert"],
+    "expected_resolution_keywords": [
+      "pool",
+      "size",
+      "increase",
+      "revert"
+    ],
     "expected_status": "complete",
     "expected_min_confidence": 0.6
   },
   {
     "case_id": "eval-002",
     "description": "Redis cache timeout cascading to auth service",
-    "tags": ["cache", "timeout", "cascade", "high"],
+    "tags": [
+      "cache",
+      "timeout",
+      "cascade",
+      "high"
+    ],
     "incident": {
       "incident_id": "eval-002-incident",
       "application": "auth-service",
       "environment": "production",
-      "title": "Auth service returning 503 — Redis cache unavailable",
+      "title": "Auth service returning 503 \u2014 Redis cache unavailable",
       "description": "Authentication requests timing out due to Redis cluster unresponsive.",
       "severity": "high",
       "status": "open",
       "start_time": "2026-09-19T11:00:00Z",
-      "affected_services": ["auth-service", "api-gateway"]
+      "affected_services": [
+        "auth-service",
+        "api-gateway"
+      ]
     },
     "mock_logs": [
-      {"level": "ERROR", "service": "auth-service", "message": "TimeoutException: Redis connection timeout after 3000ms", "exception": "TimeoutException", "minutes_ago": 5},
-      {"level": "ERROR", "service": "auth-service", "message": "TimeoutException: Redis connection timeout after 3000ms", "exception": "TimeoutException", "minutes_ago": 8},
-      {"level": "WARN",  "service": "api-gateway", "message": "Upstream auth-service returning 503, retry 1 of 3", "minutes_ago": 6}
+      {
+        "level": "ERROR",
+        "service": "auth-service",
+        "message": "TimeoutException: Redis connection timeout after 3000ms",
+        "exception": "TimeoutException",
+        "minutes_ago": 5
+      },
+      {
+        "level": "ERROR",
+        "service": "auth-service",
+        "message": "TimeoutException: Redis connection timeout after 3000ms",
+        "exception": "TimeoutException",
+        "minutes_ago": 8
+      },
+      {
+        "level": "WARN",
+        "service": "api-gateway",
+        "message": "Upstream auth-service returning 503, retry 1 of 3",
+        "minutes_ago": 6
+      }
     ],
     "mock_commits": [],
     "mock_historical_incidents": [
-      {"incident_id": "INC-HIST-002", "title": "Redis memory fragmentation timeout", "description": "Redis cluster became unresponsive due to memory fragmentation causing connection timeouts.", "similarity_score": 0.88}
+      {
+        "incident_id": "INC-HIST-002",
+        "title": "Redis memory fragmentation timeout",
+        "description": "Redis cluster became unresponsive due to memory fragmentation causing connection timeouts.",
+        "similarity_score": 0.88
+      }
     ],
-    "expected_root_cause_keywords": ["redis", "timeout", "cache"],
-    "expected_affected_services": ["auth-service"],
-    "expected_evidence_types": ["LOG", "INCIDENT"],
-    "expected_similar_incident_ids": ["INC-HIST-002"],
-    "expected_resolution_keywords": ["redis", "restart", "memory"],
+    "expected_root_cause_keywords": [
+      "redis",
+      "timeout",
+      "cache"
+    ],
+    "expected_affected_services": [
+      "auth-service"
+    ],
+    "expected_evidence_types": [
+      "LOG",
+      "INCIDENT"
+    ],
+    "expected_similar_incident_ids": [
+      "INC-HIST-002"
+    ],
+    "expected_resolution_keywords": [
+      "redis",
+      "restart",
+      "memory"
+    ],
     "expected_status": "complete",
     "expected_min_confidence": 0.55
   },
   {
     "case_id": "eval-003",
     "description": "Bad config deployment breaks API gateway health checks",
-    "tags": ["config_change", "deployment", "gateway", "high"],
+    "tags": [
+      "config_change",
+      "deployment",
+      "gateway",
+      "high"
+    ],
     "incident": {
       "incident_id": "eval-003-incident",
       "application": "api-gateway",
@@ -77,28 +177,67 @@
       "severity": "high",
       "status": "open",
       "start_time": "2026-09-19T12:00:00Z",
-      "affected_services": ["api-gateway", "payments-api"]
+      "affected_services": [
+        "api-gateway",
+        "payments-api"
+      ]
     },
     "mock_logs": [
-      {"level": "ERROR", "service": "api-gateway", "message": "Bad gateway: all upstream payment-service instances unhealthy", "exception": "BadGatewayException", "minutes_ago": 5},
-      {"level": "ERROR", "service": "api-gateway", "message": "Health check failed: /healthz returned 404 on payments-api:8080", "minutes_ago": 10}
+      {
+        "level": "ERROR",
+        "service": "api-gateway",
+        "message": "Bad gateway: all upstream payment-service instances unhealthy",
+        "exception": "BadGatewayException",
+        "minutes_ago": 5
+      },
+      {
+        "level": "ERROR",
+        "service": "api-gateway",
+        "message": "Health check failed: /healthz returned 404 on payments-api:8080",
+        "minutes_ago": 10
+      }
     ],
     "mock_commits": [
-      {"subject": "chore: update upstream health check path from /health to /healthz", "minutes_ago": 20, "files": ["config/gateway.yml"]}
+      {
+        "subject": "chore: update upstream health check path from /health to /healthz",
+        "minutes_ago": 20,
+        "files": [
+          "config/gateway.yml"
+        ]
+      }
     ],
     "mock_historical_incidents": [],
-    "expected_root_cause_keywords": ["health", "check", "config", "path"],
-    "expected_affected_services": ["api-gateway"],
-    "expected_evidence_types": ["LOG", "GIT"],
+    "expected_root_cause_keywords": [
+      "health",
+      "check",
+      "config",
+      "path"
+    ],
+    "expected_affected_services": [
+      "api-gateway"
+    ],
+    "expected_evidence_types": [
+      "LOG",
+      "GIT"
+    ],
     "expected_similar_incident_ids": [],
-    "expected_resolution_keywords": ["revert", "config", "health"],
+    "expected_resolution_keywords": [
+      "revert",
+      "config",
+      "health"
+    ],
     "expected_status": "complete",
     "expected_min_confidence": 0.6
   },
   {
     "case_id": "eval-004",
     "description": "Slow PostgreSQL query degrading order fulfilment latency",
-    "tags": ["database", "slow_query", "performance", "medium"],
+    "tags": [
+      "database",
+      "slow_query",
+      "performance",
+      "medium"
+    ],
     "incident": {
       "incident_id": "eval-004-incident",
       "application": "order-service",
@@ -108,30 +247,75 @@
       "severity": "medium",
       "status": "open",
       "start_time": "2026-09-19T13:00:00Z",
-      "affected_services": ["order-service"]
+      "affected_services": [
+        "order-service"
+      ]
     },
     "mock_logs": [
-      {"level": "WARN", "service": "order-service", "message": "Slow query detected: SELECT * FROM orders WHERE status=? took 2340ms", "minutes_ago": 10},
-      {"level": "WARN", "service": "order-service", "message": "Slow query detected: SELECT * FROM orders WHERE status=? took 2100ms", "minutes_ago": 15}
+      {
+        "level": "WARN",
+        "service": "order-service",
+        "message": "Slow query detected: SELECT * FROM orders WHERE status=? took 2340ms",
+        "minutes_ago": 10
+      },
+      {
+        "level": "WARN",
+        "service": "order-service",
+        "message": "Slow query detected: SELECT * FROM orders WHERE status=? took 2100ms",
+        "minutes_ago": 15
+      }
     ],
     "mock_commits": [
-      {"subject": "feat: add order status bulk query for dashboard", "minutes_ago": 60, "files": ["app/order_queries.py"]}
+      {
+        "subject": "feat: add order status bulk query for dashboard",
+        "minutes_ago": 60,
+        "files": [
+          "app/order_queries.py"
+        ]
+      }
     ],
     "mock_historical_incidents": [
-      {"incident_id": "INC-HIST-004", "title": "Missing index on orders table", "description": "Missing index on orders.status column caused full table scans and high latency.", "similarity_score": 0.82}
+      {
+        "incident_id": "INC-HIST-004",
+        "title": "Missing index on orders table",
+        "description": "Missing index on orders.status column caused full table scans and high latency.",
+        "similarity_score": 0.82
+      }
     ],
-    "expected_root_cause_keywords": ["slow", "query", "index", "database"],
-    "expected_affected_services": ["order-service"],
-    "expected_evidence_types": ["LOG", "GIT", "INCIDENT"],
-    "expected_similar_incident_ids": ["INC-HIST-004"],
-    "expected_resolution_keywords": ["index", "query", "optimise"],
+    "expected_root_cause_keywords": [
+      "slow",
+      "query",
+      "index",
+      "database"
+    ],
+    "expected_affected_services": [
+      "order-service"
+    ],
+    "expected_evidence_types": [
+      "LOG",
+      "GIT",
+      "INCIDENT"
+    ],
+    "expected_similar_incident_ids": [
+      "INC-HIST-004"
+    ],
+    "expected_resolution_keywords": [
+      "index",
+      "query",
+      "optimise"
+    ],
     "expected_status": "complete",
     "expected_min_confidence": 0.5
   },
   {
     "case_id": "eval-005",
     "description": "Frontend/backend API contract mismatch after backend deploy",
-    "tags": ["api_contract", "deployment", "frontend", "high"],
+    "tags": [
+      "api_contract",
+      "deployment",
+      "frontend",
+      "high"
+    ],
     "incident": {
       "incident_id": "eval-005-incident",
       "application": "web-frontend",
@@ -141,27 +325,61 @@
       "severity": "high",
       "status": "open",
       "start_time": "2026-09-19T14:00:00Z",
-      "affected_services": ["web-frontend", "checkout-api"]
+      "affected_services": [
+        "web-frontend",
+        "checkout-api"
+      ]
     },
     "mock_logs": [
-      {"level": "ERROR", "service": "web-frontend", "message": "TypeError: Cannot read property 'name' of undefined — customerId is null", "exception": "TypeError", "minutes_ago": 5}
+      {
+        "level": "ERROR",
+        "service": "web-frontend",
+        "message": "TypeError: Cannot read property 'name' of undefined \u2014 customerId is null",
+        "exception": "TypeError",
+        "minutes_ago": 5
+      }
     ],
     "mock_commits": [
-      {"subject": "refactor: rename customerId to customer_id in checkout API response", "minutes_ago": 30, "files": ["api/checkout_handler.py"]}
+      {
+        "subject": "refactor: rename customerId to customer_id in checkout API response",
+        "minutes_ago": 30,
+        "files": [
+          "api/checkout_handler.py"
+        ]
+      }
     ],
     "mock_historical_incidents": [],
-    "expected_root_cause_keywords": ["api", "contract", "rename", "field"],
-    "expected_affected_services": ["web-frontend"],
-    "expected_evidence_types": ["LOG", "GIT"],
+    "expected_root_cause_keywords": [
+      "api",
+      "contract",
+      "rename",
+      "field"
+    ],
+    "expected_affected_services": [
+      "web-frontend"
+    ],
+    "expected_evidence_types": [
+      "LOG",
+      "GIT"
+    ],
     "expected_similar_incident_ids": [],
-    "expected_resolution_keywords": ["revert", "contract", "api", "versioning"],
+    "expected_resolution_keywords": [
+      "revert",
+      "contract",
+      "api",
+      "versioning"
+    ],
     "expected_status": "complete",
     "expected_min_confidence": 0.55
   },
   {
     "case_id": "eval-006",
-    "description": "Token signing service unavailable — auth failures",
-    "tags": ["service_unavailable", "auth", "high"],
+    "description": "Token signing service unavailable \u2014 auth failures",
+    "tags": [
+      "service_unavailable",
+      "auth",
+      "high"
+    ],
     "incident": {
       "incident_id": "eval-006-incident",
       "application": "auth-service",
@@ -171,26 +389,57 @@
       "severity": "high",
       "status": "open",
       "start_time": "2026-09-19T09:00:00Z",
-      "affected_services": ["auth-service"]
+      "affected_services": [
+        "auth-service"
+      ]
     },
     "mock_logs": [
-      {"level": "ERROR", "service": "auth-service", "message": "ServiceUnavailableException: token signing service unavailable", "exception": "ServiceUnavailableException", "minutes_ago": 5},
-      {"level": "ERROR", "service": "auth-service", "message": "ServiceUnavailableException: token signing service unavailable", "exception": "ServiceUnavailableException", "minutes_ago": 10}
+      {
+        "level": "ERROR",
+        "service": "auth-service",
+        "message": "ServiceUnavailableException: token signing service unavailable",
+        "exception": "ServiceUnavailableException",
+        "minutes_ago": 5
+      },
+      {
+        "level": "ERROR",
+        "service": "auth-service",
+        "message": "ServiceUnavailableException: token signing service unavailable",
+        "exception": "ServiceUnavailableException",
+        "minutes_ago": 10
+      }
     ],
     "mock_commits": [],
     "mock_historical_incidents": [],
-    "expected_root_cause_keywords": ["token", "signing", "service", "unavailable"],
-    "expected_affected_services": ["auth-service"],
-    "expected_evidence_types": ["LOG"],
+    "expected_root_cause_keywords": [
+      "token",
+      "signing",
+      "service",
+      "unavailable"
+    ],
+    "expected_affected_services": [
+      "auth-service"
+    ],
+    "expected_evidence_types": [
+      "LOG"
+    ],
     "expected_similar_incident_ids": [],
-    "expected_resolution_keywords": ["signing", "service", "restart"],
+    "expected_resolution_keywords": [
+      "signing",
+      "service",
+      "restart"
+    ],
     "expected_status": "partial",
     "expected_min_confidence": 0.35
   },
   {
     "case_id": "eval-007",
     "description": "Payment refund processor timeout",
-    "tags": ["timeout", "payments", "high"],
+    "tags": [
+      "timeout",
+      "payments",
+      "high"
+    ],
     "incident": {
       "incident_id": "eval-007-incident",
       "application": "payments-api",
@@ -200,28 +449,68 @@
       "severity": "high",
       "status": "open",
       "start_time": "2026-09-19T15:00:00Z",
-      "affected_services": ["payments-api"]
+      "affected_services": [
+        "payments-api"
+      ]
     },
     "mock_logs": [
-      {"level": "ERROR", "service": "payments-api", "message": "TimeoutException: refund processor timeout after 5000ms", "exception": "TimeoutException", "minutes_ago": 5},
-      {"level": "ERROR", "service": "payments-api", "message": "TimeoutException: refund processor timeout after 5000ms", "exception": "TimeoutException", "minutes_ago": 8}
+      {
+        "level": "ERROR",
+        "service": "payments-api",
+        "message": "TimeoutException: refund processor timeout after 5000ms",
+        "exception": "TimeoutException",
+        "minutes_ago": 5
+      },
+      {
+        "level": "ERROR",
+        "service": "payments-api",
+        "message": "TimeoutException: refund processor timeout after 5000ms",
+        "exception": "TimeoutException",
+        "minutes_ago": 8
+      }
     ],
     "mock_commits": [],
     "mock_historical_incidents": [
-      {"incident_id": "INC-HIST-007", "title": "Payment gateway timeout during peak hours", "description": "External payment gateway timeout caused refund failures during high traffic.", "similarity_score": 0.79}
+      {
+        "incident_id": "INC-HIST-007",
+        "title": "Payment gateway timeout during peak hours",
+        "description": "External payment gateway timeout caused refund failures during high traffic.",
+        "similarity_score": 0.79
+      }
     ],
-    "expected_root_cause_keywords": ["timeout", "refund", "processor", "gateway"],
-    "expected_affected_services": ["payments-api"],
-    "expected_evidence_types": ["LOG", "INCIDENT"],
-    "expected_similar_incident_ids": ["INC-HIST-007"],
-    "expected_resolution_keywords": ["timeout", "gateway", "retry"],
+    "expected_root_cause_keywords": [
+      "timeout",
+      "refund",
+      "processor",
+      "gateway"
+    ],
+    "expected_affected_services": [
+      "payments-api"
+    ],
+    "expected_evidence_types": [
+      "LOG",
+      "INCIDENT"
+    ],
+    "expected_similar_incident_ids": [
+      "INC-HIST-007"
+    ],
+    "expected_resolution_keywords": [
+      "timeout",
+      "gateway",
+      "retry"
+    ],
     "expected_status": "partial",
     "expected_min_confidence": 0.35
   },
   {
     "case_id": "eval-008",
     "description": "Inventory service replica lag causing read timeouts",
-    "tags": ["database", "replica_lag", "timeout", "medium"],
+    "tags": [
+      "database",
+      "replica_lag",
+      "timeout",
+      "medium"
+    ],
     "incident": {
       "incident_id": "eval-008-incident",
       "application": "inventory-svc",
@@ -231,115 +520,246 @@
       "severity": "medium",
       "status": "open",
       "start_time": "2026-09-19T16:00:00Z",
-      "affected_services": ["inventory-svc", "order-service"]
+      "affected_services": [
+        "inventory-svc",
+        "order-service"
+      ]
     },
     "mock_logs": [
-      {"level": "ERROR", "service": "inventory-svc", "message": "TimeoutException: read timeout waiting for database replica after 5000ms", "exception": "TimeoutException", "minutes_ago": 5},
-      {"level": "WARN",  "service": "inventory-svc", "message": "Database replication lag detected: 45 seconds behind primary", "minutes_ago": 10}
+      {
+        "level": "ERROR",
+        "service": "inventory-svc",
+        "message": "TimeoutException: read timeout waiting for database replica after 5000ms",
+        "exception": "TimeoutException",
+        "minutes_ago": 5
+      },
+      {
+        "level": "WARN",
+        "service": "inventory-svc",
+        "message": "Database replication lag detected: 45 seconds behind primary",
+        "minutes_ago": 10
+      }
     ],
     "mock_commits": [],
     "mock_historical_incidents": [],
-    "expected_root_cause_keywords": ["replica", "lag", "database", "timeout"],
-    "expected_affected_services": ["inventory-svc"],
-    "expected_evidence_types": ["LOG"],
+    "expected_root_cause_keywords": [
+      "replica",
+      "lag",
+      "database",
+      "timeout"
+    ],
+    "expected_affected_services": [
+      "inventory-svc"
+    ],
+    "expected_evidence_types": [
+      "LOG"
+    ],
     "expected_similar_incident_ids": [],
-    "expected_resolution_keywords": ["replica", "lag", "failover"],
+    "expected_resolution_keywords": [
+      "replica",
+      "lag",
+      "failover"
+    ],
     "expected_status": "complete",
     "expected_min_confidence": 0.45
   },
   {
     "case_id": "eval-009",
-    "description": "OOM kill on fulfilment worker pods — memory leak",
-    "tags": ["memory", "oom", "infrastructure", "medium"],
+    "description": "OOM kill on fulfilment worker pods \u2014 memory leak",
+    "tags": [
+      "memory",
+      "oom",
+      "infrastructure",
+      "medium"
+    ],
     "incident": {
       "incident_id": "eval-009-incident",
       "application": "fulfilment-worker",
       "environment": "production",
-      "title": "Fulfilment workers OOMKilled — memory leak suspected",
+      "title": "Fulfilment workers OOMKilled \u2014 memory leak suspected",
       "description": "Fulfilment worker pods being OOMKilled after 2 hours of operation.",
       "severity": "medium",
       "status": "open",
       "start_time": "2026-09-19T07:00:00Z",
-      "affected_services": ["fulfilment-worker"]
+      "affected_services": [
+        "fulfilment-worker"
+      ]
     },
     "mock_logs": [
-      {"level": "ERROR", "service": "fulfilment-worker", "message": "OutOfMemoryError: Java heap space exhausted after processing 50000 records", "exception": "OutOfMemoryError", "minutes_ago": 5},
-      {"level": "WARN",  "service": "fulfilment-worker", "message": "Memory usage at 85% — approaching limit", "minutes_ago": 30}
+      {
+        "level": "ERROR",
+        "service": "fulfilment-worker",
+        "message": "OutOfMemoryError: Java heap space exhausted after processing 50000 records",
+        "exception": "OutOfMemoryError",
+        "minutes_ago": 5
+      },
+      {
+        "level": "WARN",
+        "service": "fulfilment-worker",
+        "message": "Memory usage at 85% \u2014 approaching limit",
+        "minutes_ago": 30
+      }
     ],
     "mock_commits": [
-      {"subject": "feat: add bulk order processing without result streaming", "minutes_ago": 120, "files": ["workers/fulfilment_processor.py"]}
+      {
+        "subject": "feat: add bulk order processing without result streaming",
+        "minutes_ago": 120,
+        "files": [
+          "workers/fulfilment_processor.py"
+        ]
+      }
     ],
     "mock_historical_incidents": [],
-    "expected_root_cause_keywords": ["memory", "oom", "heap", "leak"],
-    "expected_affected_services": ["fulfilment-worker"],
-    "expected_evidence_types": ["LOG", "GIT"],
+    "expected_root_cause_keywords": [
+      "memory",
+      "oom",
+      "heap",
+      "leak"
+    ],
+    "expected_affected_services": [
+      "fulfilment-worker"
+    ],
+    "expected_evidence_types": [
+      "LOG",
+      "GIT"
+    ],
     "expected_similar_incident_ids": [],
-    "expected_resolution_keywords": ["memory", "streaming", "batch"],
+    "expected_resolution_keywords": [
+      "memory",
+      "streaming",
+      "batch"
+    ],
     "expected_status": "complete",
     "expected_min_confidence": 0.5
   },
   {
     "case_id": "eval-010",
     "description": "Notification service dead letter queue overflow",
-    "tags": ["queue", "overflow", "medium"],
+    "tags": [
+      "queue",
+      "overflow",
+      "medium"
+    ],
     "incident": {
       "incident_id": "eval-010-incident",
       "application": "notification-service",
       "environment": "production",
-      "title": "Notification delivery failures — dead letter queue full",
+      "title": "Notification delivery failures \u2014 dead letter queue full",
       "description": "Email and SMS notifications not being delivered. Dead letter queue reached capacity.",
       "severity": "medium",
       "status": "open",
       "start_time": "2026-09-19T08:00:00Z",
-      "affected_services": ["notification-service"]
+      "affected_services": [
+        "notification-service"
+      ]
     },
     "mock_logs": [
-      {"level": "ERROR", "service": "notification-service", "message": "DeadLetterQueueFullException: cannot enqueue failed message, DLQ at capacity (10000/10000)", "exception": "DeadLetterQueueFullException", "minutes_ago": 5},
-      {"level": "WARN",  "service": "notification-service", "message": "DLQ consumer lag increasing: 5000 messages behind", "minutes_ago": 20}
+      {
+        "level": "ERROR",
+        "service": "notification-service",
+        "message": "DeadLetterQueueFullException: cannot enqueue failed message, DLQ at capacity (10000/10000)",
+        "exception": "DeadLetterQueueFullException",
+        "minutes_ago": 5
+      },
+      {
+        "level": "WARN",
+        "service": "notification-service",
+        "message": "DLQ consumer lag increasing: 5000 messages behind",
+        "minutes_ago": 20
+      }
     ],
     "mock_commits": [],
     "mock_historical_incidents": [],
-    "expected_root_cause_keywords": ["queue", "dead", "letter", "capacity"],
-    "expected_affected_services": ["notification-service"],
-    "expected_evidence_types": ["LOG"],
+    "expected_root_cause_keywords": [
+      "queue",
+      "dead",
+      "letter",
+      "capacity"
+    ],
+    "expected_affected_services": [
+      "notification-service"
+    ],
+    "expected_evidence_types": [
+      "LOG"
+    ],
     "expected_similar_incident_ids": [],
-    "expected_resolution_keywords": ["queue", "consumer", "drain"],
+    "expected_resolution_keywords": [
+      "queue",
+      "consumer",
+      "drain"
+    ],
     "expected_status": "partial",
     "expected_min_confidence": 0.35
   },
   {
     "case_id": "eval-011",
     "description": "SSL certificate expiry causing TLS handshake failures",
-    "tags": ["tls", "certificate", "infrastructure", "critical"],
+    "tags": [
+      "tls",
+      "certificate",
+      "infrastructure",
+      "critical"
+    ],
     "incident": {
       "incident_id": "eval-011-incident",
       "application": "api-gateway",
       "environment": "production",
-      "title": "TLS handshake failures — SSL certificate expired",
+      "title": "TLS handshake failures \u2014 SSL certificate expired",
       "description": "All HTTPS connections failing with certificate expiry errors.",
       "severity": "critical",
       "status": "open",
       "start_time": "2026-09-19T00:00:00Z",
-      "affected_services": ["api-gateway"]
+      "affected_services": [
+        "api-gateway"
+      ]
     },
     "mock_logs": [
-      {"level": "ERROR", "service": "api-gateway", "message": "TLSHandshakeException: certificate expired on 2026-09-18 for domain api.example.com", "exception": "TLSHandshakeException", "minutes_ago": 5},
-      {"level": "ERROR", "service": "api-gateway", "message": "TLSHandshakeException: certificate expired on 2026-09-18 for domain api.example.com", "exception": "TLSHandshakeException", "minutes_ago": 10}
+      {
+        "level": "ERROR",
+        "service": "api-gateway",
+        "message": "TLSHandshakeException: certificate expired on 2026-09-18 for domain api.example.com",
+        "exception": "TLSHandshakeException",
+        "minutes_ago": 5
+      },
+      {
+        "level": "ERROR",
+        "service": "api-gateway",
+        "message": "TLSHandshakeException: certificate expired on 2026-09-18 for domain api.example.com",
+        "exception": "TLSHandshakeException",
+        "minutes_ago": 10
+      }
     ],
     "mock_commits": [],
     "mock_historical_incidents": [],
-    "expected_root_cause_keywords": ["certificate", "expired", "tls", "ssl"],
-    "expected_affected_services": ["api-gateway"],
-    "expected_evidence_types": ["LOG"],
+    "expected_root_cause_keywords": [
+      "certificate",
+      "expired",
+      "tls",
+      "ssl"
+    ],
+    "expected_affected_services": [
+      "api-gateway"
+    ],
+    "expected_evidence_types": [
+      "LOG"
+    ],
     "expected_similar_incident_ids": [],
-    "expected_resolution_keywords": ["certificate", "renew", "ssl"],
+    "expected_resolution_keywords": [
+      "certificate",
+      "renew",
+      "ssl"
+    ],
     "expected_status": "complete",
     "expected_min_confidence": 0.55
   },
   {
     "case_id": "eval-012",
     "description": "Rate limiting too aggressive after config change",
-    "tags": ["rate_limiting", "config_change", "medium"],
+    "tags": [
+      "rate_limiting",
+      "config_change",
+      "medium"
+    ],
     "incident": {
       "incident_id": "eval-012-incident",
       "application": "api-gateway",
@@ -349,145 +769,304 @@
       "severity": "medium",
       "status": "open",
       "start_time": "2026-09-19T10:30:00Z",
-      "affected_services": ["api-gateway"]
+      "affected_services": [
+        "api-gateway"
+      ]
     },
     "mock_logs": [
-      {"level": "WARN", "service": "api-gateway", "message": "Rate limit exceeded for client 192.168.1.1: 10/10 req/min threshold hit", "minutes_ago": 5}
+      {
+        "level": "WARN",
+        "service": "api-gateway",
+        "message": "Rate limit exceeded for client 192.168.1.1: 10/10 req/min threshold hit",
+        "minutes_ago": 5
+      }
     ],
     "mock_commits": [
-      {"subject": "fix: update rate limit config for staging environment", "minutes_ago": 25, "files": ["config/rate_limits.yml"]}
+      {
+        "subject": "fix: update rate limit config for staging environment",
+        "minutes_ago": 25,
+        "files": [
+          "config/rate_limits.yml"
+        ]
+      }
     ],
     "mock_historical_incidents": [],
-    "expected_root_cause_keywords": ["rate", "limit", "config", "threshold"],
-    "expected_affected_services": ["api-gateway"],
-    "expected_evidence_types": ["LOG", "GIT"],
+    "expected_root_cause_keywords": [
+      "rate",
+      "limit",
+      "config",
+      "threshold"
+    ],
+    "expected_affected_services": [
+      "api-gateway"
+    ],
+    "expected_evidence_types": [
+      "LOG",
+      "GIT"
+    ],
     "expected_similar_incident_ids": [],
-    "expected_resolution_keywords": ["rate", "limit", "config", "revert"],
+    "expected_resolution_keywords": [
+      "rate",
+      "limit",
+      "config",
+      "revert"
+    ],
     "expected_status": "complete",
     "expected_min_confidence": 0.5
   },
   {
     "case_id": "eval-013",
     "description": "Circular dependency after service refactor causes startup failure",
-    "tags": ["code_bug", "startup", "dependency", "high"],
+    "tags": [
+      "code_bug",
+      "startup",
+      "dependency",
+      "high"
+    ],
     "incident": {
       "incident_id": "eval-013-incident",
       "application": "order-service",
       "environment": "production",
-      "title": "Order service failing to start after deployment — circular dependency",
+      "title": "Order service failing to start after deployment \u2014 circular dependency",
       "description": "New deployment introduced circular import between order_processor and payment_client modules.",
       "severity": "high",
       "status": "open",
       "start_time": "2026-09-19T17:00:00Z",
-      "affected_services": ["order-service"]
+      "affected_services": [
+        "order-service"
+      ]
     },
     "mock_logs": [
-      {"level": "ERROR", "service": "order-service", "message": "ImportError: cannot import name 'PaymentClient' from 'payment_client' — circular import detected", "exception": "ImportError", "minutes_ago": 5}
+      {
+        "level": "ERROR",
+        "service": "order-service",
+        "message": "ImportError: cannot import name 'PaymentClient' from 'payment_client' \u2014 circular import detected",
+        "exception": "ImportError",
+        "minutes_ago": 5
+      }
     ],
     "mock_commits": [
-      {"subject": "refactor: extract payment client into shared module", "minutes_ago": 35, "files": ["services/order_processor.py", "services/payment_client.py"]}
+      {
+        "subject": "refactor: extract payment client into shared module",
+        "minutes_ago": 35,
+        "files": [
+          "services/order_processor.py",
+          "services/payment_client.py"
+        ]
+      }
     ],
     "mock_historical_incidents": [],
-    "expected_root_cause_keywords": ["circular", "import", "dependency", "refactor"],
-    "expected_affected_services": ["order-service"],
-    "expected_evidence_types": ["LOG", "GIT"],
+    "expected_root_cause_keywords": [
+      "circular",
+      "import",
+      "dependency",
+      "refactor"
+    ],
+    "expected_affected_services": [
+      "order-service"
+    ],
+    "expected_evidence_types": [
+      "LOG",
+      "GIT"
+    ],
     "expected_similar_incident_ids": [],
-    "expected_resolution_keywords": ["circular", "import", "revert", "refactor"],
+    "expected_resolution_keywords": [
+      "circular",
+      "import",
+      "revert",
+      "refactor"
+    ],
     "expected_status": "complete",
     "expected_min_confidence": 0.55
   },
   {
     "case_id": "eval-014",
-    "description": "No evidence available — truly unknown root cause",
-    "tags": ["insufficient_evidence", "unknown"],
+    "description": "No evidence available \u2014 truly unknown root cause",
+    "tags": [
+      "insufficient_evidence",
+      "unknown"
+    ],
     "incident": {
       "incident_id": "eval-014-incident",
       "application": "analytics-service",
       "environment": "production",
-      "title": "Analytics service intermittently slow — no clear cause",
+      "title": "Analytics service intermittently slow \u2014 no clear cause",
       "description": "Analytics API sporadically takes >10 seconds to respond but no errors in logs.",
       "severity": "low",
       "status": "open",
       "start_time": "2026-09-19T06:00:00Z",
-      "affected_services": ["analytics-service"]
+      "affected_services": [
+        "analytics-service"
+      ]
     },
     "mock_logs": [],
     "mock_commits": [],
     "mock_historical_incidents": [],
     "expected_root_cause_keywords": [],
-    "expected_affected_services": ["analytics-service"],
+    "expected_affected_services": [
+      "analytics-service"
+    ],
     "expected_evidence_types": [],
     "expected_similar_incident_ids": [],
-    "expected_resolution_keywords": ["investigate", "logging", "metrics"],
+    "expected_resolution_keywords": [
+      "investigate",
+      "logging",
+      "metrics"
+    ],
     "expected_status": "insufficient_evidence",
     "expected_min_confidence": 0.0
   },
   {
     "case_id": "eval-015",
     "description": "Database migration rollback failure corrupts schema",
-    "tags": ["database", "migration", "critical"],
+    "tags": [
+      "database",
+      "migration",
+      "critical"
+    ],
     "incident": {
       "incident_id": "eval-015-incident",
       "application": "user-service",
       "environment": "production",
-      "title": "User service crashing — database schema corrupted after migration rollback",
+      "title": "User service crashing \u2014 database schema corrupted after migration rollback",
       "description": "Failed migration rollback left the users table in an inconsistent state.",
       "severity": "critical",
       "status": "open",
       "start_time": "2026-09-19T18:00:00Z",
-      "affected_services": ["user-service"]
+      "affected_services": [
+        "user-service"
+      ]
     },
     "mock_logs": [
-      {"level": "ERROR", "service": "user-service", "message": "ProgrammingError: column 'email_verified' does not exist in table users", "exception": "ProgrammingError", "minutes_ago": 5},
-      {"level": "ERROR", "service": "user-service", "message": "ProgrammingError: column 'email_verified' does not exist in table users", "exception": "ProgrammingError", "minutes_ago": 8}
+      {
+        "level": "ERROR",
+        "service": "user-service",
+        "message": "ProgrammingError: column 'email_verified' does not exist in table users",
+        "exception": "ProgrammingError",
+        "minutes_ago": 5
+      },
+      {
+        "level": "ERROR",
+        "service": "user-service",
+        "message": "ProgrammingError: column 'email_verified' does not exist in table users",
+        "exception": "ProgrammingError",
+        "minutes_ago": 8
+      }
     ],
     "mock_commits": [
-      {"subject": "db: add email_verified column migration (partial rollback)", "minutes_ago": 40, "files": ["migrations/0042_add_email_verified.py"]}
+      {
+        "subject": "db: add email_verified column migration (partial rollback)",
+        "minutes_ago": 40,
+        "files": [
+          "migrations/0042_add_email_verified.py"
+        ]
+      }
     ],
     "mock_historical_incidents": [],
-    "expected_root_cause_keywords": ["migration", "schema", "rollback", "column"],
-    "expected_affected_services": ["user-service"],
-    "expected_evidence_types": ["LOG", "GIT"],
+    "expected_root_cause_keywords": [
+      "migration",
+      "schema",
+      "rollback",
+      "column"
+    ],
+    "expected_affected_services": [
+      "user-service"
+    ],
+    "expected_evidence_types": [
+      "LOG",
+      "GIT"
+    ],
     "expected_similar_incident_ids": [],
-    "expected_resolution_keywords": ["migration", "schema", "repair", "rollback"],
+    "expected_resolution_keywords": [
+      "migration",
+      "schema",
+      "repair",
+      "rollback"
+    ],
     "expected_status": "complete",
     "expected_min_confidence": 0.55
   },
   {
     "case_id": "eval-016",
-    "description": "Third-party payment gateway degradation — partial failure",
-    "tags": ["third_party", "dependency_failure", "payments", "high"],
+    "description": "Third-party payment gateway degradation \u2014 partial failure",
+    "tags": [
+      "third_party",
+      "dependency_failure",
+      "payments",
+      "high"
+    ],
     "incident": {
       "incident_id": "eval-016-incident",
       "application": "payments-api",
       "environment": "production",
-      "title": "Payment gateway degraded — 30% transaction failure rate",
+      "title": "Payment gateway degraded \u2014 30% transaction failure rate",
       "description": "External payment provider Stripe returning 503 for 30% of charge requests.",
       "severity": "high",
       "status": "open",
       "start_time": "2026-09-19T19:00:00Z",
-      "affected_services": ["payments-api"]
+      "affected_services": [
+        "payments-api"
+      ]
     },
     "mock_logs": [
-      {"level": "ERROR", "service": "payments-api", "message": "Stripe API returned 503: service temporarily unavailable", "exception": "ExternalServiceException", "minutes_ago": 5},
-      {"level": "ERROR", "service": "payments-api", "message": "Stripe API returned 503: service temporarily unavailable", "exception": "ExternalServiceException", "minutes_ago": 7}
+      {
+        "level": "ERROR",
+        "service": "payments-api",
+        "message": "Stripe API returned 503: service temporarily unavailable",
+        "exception": "ExternalServiceException",
+        "minutes_ago": 5
+      },
+      {
+        "level": "ERROR",
+        "service": "payments-api",
+        "message": "Stripe API returned 503: service temporarily unavailable",
+        "exception": "ExternalServiceException",
+        "minutes_ago": 7
+      }
     ],
     "mock_commits": [],
     "mock_historical_incidents": [
-      {"incident_id": "INC-HIST-016", "title": "Stripe partial outage impacting payments", "description": "Stripe experienced a partial outage causing payment failures for 45 minutes.", "similarity_score": 0.91}
+      {
+        "incident_id": "INC-HIST-016",
+        "title": "Stripe partial outage impacting payments",
+        "description": "Stripe experienced a partial outage causing payment failures for 45 minutes.",
+        "similarity_score": 0.91
+      }
     ],
-    "expected_root_cause_keywords": ["stripe", "external", "service", "unavailable"],
-    "expected_affected_services": ["payments-api"],
-    "expected_evidence_types": ["LOG", "INCIDENT"],
-    "expected_similar_incident_ids": ["INC-HIST-016"],
-    "expected_resolution_keywords": ["fallback", "retry", "circuit", "breaker"],
+    "expected_root_cause_keywords": [
+      "stripe",
+      "external",
+      "service",
+      "unavailable"
+    ],
+    "expected_affected_services": [
+      "payments-api"
+    ],
+    "expected_evidence_types": [
+      "LOG",
+      "INCIDENT"
+    ],
+    "expected_similar_incident_ids": [
+      "INC-HIST-016"
+    ],
+    "expected_resolution_keywords": [
+      "fallback",
+      "retry",
+      "circuit",
+      "breaker"
+    ],
     "expected_status": "complete",
     "expected_min_confidence": 0.5
   },
   {
     "case_id": "eval-017",
     "description": "Service mesh misconfiguration causes intermittent 503s",
-    "tags": ["infrastructure", "service_mesh", "config_change", "medium"],
+    "tags": [
+      "infrastructure",
+      "service_mesh",
+      "config_change",
+      "medium"
+    ],
     "incident": {
       "incident_id": "eval-017-incident",
       "application": "checkout-api",
@@ -497,114 +1076,755 @@
       "severity": "medium",
       "status": "open",
       "start_time": "2026-09-19T20:00:00Z",
-      "affected_services": ["checkout-api", "payments-api"]
+      "affected_services": [
+        "checkout-api",
+        "payments-api"
+      ]
     },
     "mock_logs": [
-      {"level": "ERROR", "service": "checkout-api", "message": "PEER_CERTIFICATE_VERIFY_FAILED: mTLS handshake failed for payments-api", "exception": "TLSPeerVerificationException", "minutes_ago": 5}
+      {
+        "level": "ERROR",
+        "service": "checkout-api",
+        "message": "PEER_CERTIFICATE_VERIFY_FAILED: mTLS handshake failed for payments-api",
+        "exception": "TLSPeerVerificationException",
+        "minutes_ago": 5
+      }
     ],
     "mock_commits": [
-      {"subject": "infra: update service mesh mTLS policy to strict mode", "minutes_ago": 50, "files": ["infra/mesh-policy.yaml"]}
+      {
+        "subject": "infra: update service mesh mTLS policy to strict mode",
+        "minutes_ago": 50,
+        "files": [
+          "infra/mesh-policy.yaml"
+        ]
+      }
     ],
     "mock_historical_incidents": [],
-    "expected_root_cause_keywords": ["mtls", "certificate", "mesh", "policy"],
-    "expected_affected_services": ["checkout-api"],
-    "expected_evidence_types": ["LOG", "GIT"],
+    "expected_root_cause_keywords": [
+      "mtls",
+      "certificate",
+      "mesh",
+      "policy"
+    ],
+    "expected_affected_services": [
+      "checkout-api"
+    ],
+    "expected_evidence_types": [
+      "LOG",
+      "GIT"
+    ],
     "expected_similar_incident_ids": [],
-    "expected_resolution_keywords": ["mtls", "certificate", "mesh", "rollback"],
+    "expected_resolution_keywords": [
+      "mtls",
+      "certificate",
+      "mesh",
+      "rollback"
+    ],
     "expected_status": "complete",
     "expected_min_confidence": 0.5
   },
   {
     "case_id": "eval-018",
     "description": "Historical incident correctly retrieved and used for inference",
-    "tags": ["historical_match", "database", "high"],
+    "tags": [
+      "historical_match",
+      "database",
+      "high"
+    ],
     "incident": {
       "incident_id": "eval-018-incident",
       "application": "payments-api",
       "environment": "production",
-      "title": "Payments DB connection pool exhausted — second occurrence",
+      "title": "Payments DB connection pool exhausted \u2014 second occurrence",
       "description": "Same DB connection pool failure as three weeks ago. Pool size reduced after cost review.",
       "severity": "high",
       "status": "open",
       "start_time": "2026-09-19T21:00:00Z",
-      "affected_services": ["payments-api"]
+      "affected_services": [
+        "payments-api"
+      ]
     },
     "mock_logs": [
-      {"level": "ERROR", "service": "payments-api", "message": "HikariPool-1 - Connection is not available, request timed out after 30000ms", "exception": "SQLException", "minutes_ago": 5}
+      {
+        "level": "ERROR",
+        "service": "payments-api",
+        "message": "HikariPool-1 - Connection is not available, request timed out after 30000ms",
+        "exception": "SQLException",
+        "minutes_ago": 5
+      }
     ],
     "mock_commits": [],
     "mock_historical_incidents": [
-      {"incident_id": "INC-HIST-001", "title": "Database connection pool exhaustion", "description": "Connection pool size reduced from 20 to 5. All payment requests failed with SQLException.", "similarity_score": 0.93}
+      {
+        "incident_id": "INC-HIST-001",
+        "title": "Database connection pool exhaustion",
+        "description": "Connection pool size reduced from 20 to 5. All payment requests failed with SQLException.",
+        "similarity_score": 0.93
+      }
     ],
-    "expected_root_cause_keywords": ["connection", "pool", "exhausted", "hikari"],
-    "expected_affected_services": ["payments-api"],
-    "expected_evidence_types": ["LOG", "INCIDENT"],
-    "expected_similar_incident_ids": ["INC-HIST-001"],
-    "expected_resolution_keywords": ["pool", "size", "increase"],
+    "expected_root_cause_keywords": [
+      "connection",
+      "pool",
+      "exhausted",
+      "hikari"
+    ],
+    "expected_affected_services": [
+      "payments-api"
+    ],
+    "expected_evidence_types": [
+      "LOG",
+      "INCIDENT"
+    ],
+    "expected_similar_incident_ids": [
+      "INC-HIST-001"
+    ],
+    "expected_resolution_keywords": [
+      "pool",
+      "size",
+      "increase"
+    ],
     "expected_status": "complete",
     "expected_min_confidence": 0.5
   },
   {
     "case_id": "eval-019",
-    "description": "Conflicting evidence — two plausible root causes",
-    "tags": ["conflicting_evidence", "database", "medium"],
+    "description": "Conflicting evidence \u2014 two plausible root causes",
+    "tags": [
+      "conflicting_evidence",
+      "database",
+      "medium"
+    ],
     "incident": {
       "incident_id": "eval-019-incident",
       "application": "reporting-service",
       "environment": "production",
-      "title": "Reporting service slow — DB or code change unclear",
+      "title": "Reporting service slow \u2014 DB or code change unclear",
       "description": "Reports generating slowly. Both a new complex query and increased load are observed.",
       "severity": "medium",
       "status": "open",
       "start_time": "2026-09-19T22:00:00Z",
-      "affected_services": ["reporting-service"]
+      "affected_services": [
+        "reporting-service"
+      ]
     },
     "mock_logs": [
-      {"level": "WARN", "service": "reporting-service", "message": "Slow query: report_generation took 8500ms", "minutes_ago": 10},
-      {"level": "WARN", "service": "reporting-service", "message": "High CPU usage: 92% for 5 minutes", "minutes_ago": 15}
+      {
+        "level": "WARN",
+        "service": "reporting-service",
+        "message": "Slow query: report_generation took 8500ms",
+        "minutes_ago": 10
+      },
+      {
+        "level": "WARN",
+        "service": "reporting-service",
+        "message": "High CPU usage: 92% for 5 minutes",
+        "minutes_ago": 15
+      }
     ],
     "mock_commits": [
-      {"subject": "feat: add cross-tenant aggregation query to reports", "minutes_ago": 90, "files": ["reports/aggregator.py"]}
+      {
+        "subject": "feat: add cross-tenant aggregation query to reports",
+        "minutes_ago": 90,
+        "files": [
+          "reports/aggregator.py"
+        ]
+      }
     ],
     "mock_historical_incidents": [],
-    "expected_root_cause_keywords": ["query", "slow", "aggregation"],
-    "expected_affected_services": ["reporting-service"],
-    "expected_evidence_types": ["LOG", "GIT"],
+    "expected_root_cause_keywords": [
+      "query",
+      "slow",
+      "aggregation"
+    ],
+    "expected_affected_services": [
+      "reporting-service"
+    ],
+    "expected_evidence_types": [
+      "LOG",
+      "GIT"
+    ],
     "expected_similar_incident_ids": [],
-    "expected_resolution_keywords": ["query", "optimise", "index"],
+    "expected_resolution_keywords": [
+      "query",
+      "optimise",
+      "index"
+    ],
     "expected_status": "partial",
     "expected_min_confidence": 0.3
   },
   {
     "case_id": "eval-020",
-    "description": "Deployment rollback resolves incident — resolution tracking",
-    "tags": ["deployment", "rollback", "resolved", "critical"],
+    "description": "Deployment rollback resolves incident \u2014 resolution tracking",
+    "tags": [
+      "deployment",
+      "rollback",
+      "resolved",
+      "critical"
+    ],
     "incident": {
       "incident_id": "eval-020-incident",
       "application": "payments-api",
       "environment": "production",
-      "title": "Payment processing down — v3.2.0 deploy introduced null pointer exception",
+      "title": "Payment processing down \u2014 v3.2.0 deploy introduced null pointer exception",
       "description": "Deploy v3.2.0 introduced a NullPointerException in the payment processor. Rollback to v3.1.9 resolved the issue.",
       "severity": "critical",
       "status": "investigating",
       "start_time": "2026-09-19T23:00:00Z",
-      "affected_services": ["payments-api"]
+      "affected_services": [
+        "payments-api"
+      ]
     },
     "mock_logs": [
-      {"level": "ERROR", "service": "payments-api", "message": "NullPointerException at PaymentProcessor.processCharge line 142: amount is null", "exception": "NullPointerException", "minutes_ago": 25},
-      {"level": "ERROR", "service": "payments-api", "message": "NullPointerException at PaymentProcessor.processCharge line 142: amount is null", "exception": "NullPointerException", "minutes_ago": 20}
+      {
+        "level": "ERROR",
+        "service": "payments-api",
+        "message": "NullPointerException at PaymentProcessor.processCharge line 142: amount is null",
+        "exception": "NullPointerException",
+        "minutes_ago": 25
+      },
+      {
+        "level": "ERROR",
+        "service": "payments-api",
+        "message": "NullPointerException at PaymentProcessor.processCharge line 142: amount is null",
+        "exception": "NullPointerException",
+        "minutes_ago": 20
+      }
     ],
     "mock_commits": [
-      {"subject": "feat: v3.2.0 — add optional discount field to payment processor", "minutes_ago": 30, "files": ["payments/payment_processor.py"]},
-      {"subject": "fix: rollback v3.2.0 — revert payment processor to v3.1.9", "minutes_ago": 5, "files": ["payments/payment_processor.py"]}
+      {
+        "subject": "feat: v3.2.0 \u2014 add optional discount field to payment processor",
+        "minutes_ago": 30,
+        "files": [
+          "payments/payment_processor.py"
+        ]
+      },
+      {
+        "subject": "fix: rollback v3.2.0 \u2014 revert payment processor to v3.1.9",
+        "minutes_ago": 5,
+        "files": [
+          "payments/payment_processor.py"
+        ]
+      }
     ],
     "mock_historical_incidents": [],
-    "expected_root_cause_keywords": ["null", "pointer", "exception", "deploy"],
-    "expected_affected_services": ["payments-api"],
-    "expected_evidence_types": ["LOG", "GIT"],
+    "expected_root_cause_keywords": [
+      "null",
+      "pointer",
+      "exception",
+      "deploy"
+    ],
+    "expected_affected_services": [
+      "payments-api"
+    ],
+    "expected_evidence_types": [
+      "LOG",
+      "GIT"
+    ],
     "expected_similar_incident_ids": [],
-    "expected_resolution_keywords": ["rollback", "null", "revert"],
+    "expected_resolution_keywords": [
+      "rollback",
+      "null",
+      "revert"
+    ],
     "expected_status": "complete",
     "expected_min_confidence": 0.6
+  },
+  {
+    "case_id": "rke-eval-001",
+    "description": "RKE INC-001: PostgreSQL connection pool exhaustion \u2014 HikariCP saturated",
+    "tags": [
+      "rke",
+      "database",
+      "connection_pool",
+      "hikaricp",
+      "critical"
+    ],
+    "incident": {
+      "incident_id": "rke-eval-001-incident",
+      "application": "rke-backend",
+      "environment": "local-docker",
+      "title": "RKE backend: PostgreSQL query timeout \u2014 connection pool exhausted",
+      "description": "High query latency causing HikariCP connection pool to saturate. POST /api/sales returning HTTP 500. Connection acquisition timing out after 30000ms.",
+      "severity": "high",
+      "status": "open",
+      "start_time": "2026-09-19T10:00:00Z",
+      "affected_services": [
+        "rke-backend"
+      ]
+    },
+    "mock_logs": [
+      {
+        "level": "WARN",
+        "service": "rke-backend",
+        "message": "HikariPool-1 - Connection acquisition took 5230ms \u2014 pool may be under pressure",
+        "minutes_ago": 10
+      },
+      {
+        "level": "WARN",
+        "service": "rke-backend",
+        "message": "SQL query on table 'villages' took 8200ms \u2014 check for missing index",
+        "minutes_ago": 8
+      },
+      {
+        "level": "ERROR",
+        "service": "rke-backend",
+        "message": "HikariPool-1 - Connection is not available, request timed out after 30000ms",
+        "exception": "java.sql.SQLTimeoutException",
+        "minutes_ago": 5
+      },
+      {
+        "level": "ERROR",
+        "service": "rke-backend",
+        "message": "HikariPool-1 - Connection is not available, request timed out after 30000ms",
+        "exception": "java.sql.SQLTimeoutException",
+        "minutes_ago": 4
+      },
+      {
+        "level": "WARN",
+        "service": "rke-backend",
+        "message": "HikariPool-1 - Thread starvation or clock leap detected. (waiting=8)",
+        "minutes_ago": 3
+      }
+    ],
+    "mock_commits": [
+      {
+        "subject": "feat: add villages search endpoint with unindexed filter",
+        "minutes_ago": 60,
+        "files": [
+          "backend/src/main/java/com/rke/backend/repository/VillageRepository.java"
+        ]
+      }
+    ],
+    "mock_historical_incidents": [],
+    "expected_root_cause_keywords": [
+      "hikari",
+      "pool",
+      "timeout",
+      "connection",
+      "exhausted"
+    ],
+    "expected_affected_services": [
+      "rke-backend"
+    ],
+    "expected_evidence_types": [
+      "LOG",
+      "GIT"
+    ],
+    "expected_similar_incident_ids": [],
+    "expected_resolution_keywords": [
+      "pool",
+      "size",
+      "index",
+      "query",
+      "timeout"
+    ],
+    "expected_status": "complete",
+    "expected_min_confidence": 0.6
+  },
+  {
+    "case_id": "rke-eval-002",
+    "description": "RKE INC-002: Slow PostgreSQL query \u2014 pg_sleep simulation introduces 5s latency",
+    "tags": [
+      "rke",
+      "database",
+      "slow_query",
+      "latency",
+      "medium"
+    ],
+    "incident": {
+      "incident_id": "rke-eval-002-incident",
+      "application": "rke-backend",
+      "environment": "local-docker",
+      "title": "RKE backend: API latency degradation \u2014 slow database queries",
+      "description": "API response times have increased significantly. WARN-level logs show slow Hibernate queries taking > 2 seconds. Simulated via pg_sleep.",
+      "severity": "medium",
+      "status": "open",
+      "start_time": "2026-09-19T10:00:00Z",
+      "affected_services": [
+        "rke-backend"
+      ]
+    },
+    "mock_logs": [
+      {
+        "level": "WARN",
+        "service": "rke-backend",
+        "message": "Slow Hibernate query detected: SELECT * FROM transactions took 2340ms",
+        "minutes_ago": 15
+      },
+      {
+        "level": "WARN",
+        "service": "rke-backend",
+        "message": "Slow Hibernate query detected: SELECT pg_sleep(5) took 5012ms \u2014 check for missing index",
+        "minutes_ago": 10
+      },
+      {
+        "level": "WARN",
+        "service": "rke-backend",
+        "message": "API p99 latency increased from 100ms to 5200ms on POST /api/sales/cash",
+        "minutes_ago": 8
+      }
+    ],
+    "mock_commits": [
+      {
+        "subject": "feat: add farmer search with unoptimised full-table scan",
+        "minutes_ago": 90,
+        "files": [
+          "backend/src/main/java/com/rke/backend/repository/FarmerRepository.java"
+        ]
+      }
+    ],
+    "mock_historical_incidents": [],
+    "expected_root_cause_keywords": [
+      "slow",
+      "query",
+      "latency",
+      "hibernate",
+      "database"
+    ],
+    "expected_affected_services": [
+      "rke-backend"
+    ],
+    "expected_evidence_types": [
+      "LOG",
+      "GIT"
+    ],
+    "expected_similar_incident_ids": [],
+    "expected_resolution_keywords": [
+      "index",
+      "query",
+      "optimise",
+      "timeout"
+    ],
+    "expected_status": "complete",
+    "expected_min_confidence": 0.5
+  },
+  {
+    "case_id": "rke-eval-003",
+    "description": "RKE INC-003: Backend application exception \u2014 ArithmeticException in price calculation",
+    "tags": [
+      "rke",
+      "code_bug",
+      "exception",
+      "http_500",
+      "high"
+    ],
+    "incident": {
+      "incident_id": "rke-eval-003-incident",
+      "application": "rke-backend",
+      "environment": "local-docker",
+      "title": "RKE backend: Unhandled arithmetic exception returning HTTP 500",
+      "description": "A code path in the price calculation service throws ArithmeticException: integer overflow. Spring Boot exception handler returns HTTP 500.",
+      "severity": "high",
+      "status": "open",
+      "start_time": "2026-09-19T10:00:00Z",
+      "affected_services": [
+        "rke-backend"
+      ]
+    },
+    "mock_logs": [
+      {
+        "level": "INFO",
+        "service": "rke-backend",
+        "message": "Processing order \u2014 starting inventory check correlationId=abc123",
+        "minutes_ago": 6
+      },
+      {
+        "level": "INFO",
+        "service": "rke-backend",
+        "message": "Inventory check passed: inStock=true correlationId=abc123",
+        "minutes_ago": 6
+      },
+      {
+        "level": "ERROR",
+        "service": "rke-backend",
+        "message": "Price calculation failed: integer overflow correlationId=abc123",
+        "exception": "java.lang.ArithmeticException",
+        "minutes_ago": 5
+      },
+      {
+        "level": "ERROR",
+        "service": "rke-backend",
+        "message": "[INC-003] Internal error during price calculation for order correlationId=abc123. Arithmetic overflow in discount computation",
+        "exception": "com.rke.backend.simulation.SimulationException",
+        "minutes_ago": 5
+      }
+    ],
+    "mock_commits": [
+      {
+        "subject": "feat: add bulk discount computation using int accumulator",
+        "minutes_ago": 40,
+        "files": [
+          "backend/src/main/java/com/rke/backend/service/SalesService.java"
+        ]
+      }
+    ],
+    "mock_historical_incidents": [],
+    "expected_root_cause_keywords": [
+      "arithmetic",
+      "overflow",
+      "price",
+      "calculation",
+      "exception"
+    ],
+    "expected_affected_services": [
+      "rke-backend"
+    ],
+    "expected_evidence_types": [
+      "LOG",
+      "GIT"
+    ],
+    "expected_similar_incident_ids": [],
+    "expected_resolution_keywords": [
+      "overflow",
+      "integer",
+      "long",
+      "revert",
+      "fix"
+    ],
+    "expected_status": "complete",
+    "expected_min_confidence": 0.55
+  },
+  {
+    "case_id": "rke-eval-004",
+    "description": "RKE INC-004: Configuration regression \u2014 max-items-per-order=0 breaks order validation",
+    "tags": [
+      "rke",
+      "config_change",
+      "regression",
+      "critical"
+    ],
+    "incident": {
+      "incident_id": "rke-eval-004-incident",
+      "application": "rke-backend",
+      "environment": "local-docker",
+      "title": "RKE backend: Configuration regression \u2014 order validation rejecting all orders",
+      "description": "simulation.config-regression.max-items-per-order set to 0 in application-simulation.yml. All order creation requests are rejected with 500.",
+      "severity": "critical",
+      "status": "open",
+      "start_time": "2026-09-19T10:00:00Z",
+      "affected_services": [
+        "rke-backend"
+      ]
+    },
+    "mock_logs": [
+      {
+        "level": "ERROR",
+        "service": "rke-backend",
+        "message": "CONFIGURATION REGRESSION DETECTED: max-items-per-order=0 (expected > 0). Orders will be rejected as empty. Check recent Git changes to application-simulation.yml.",
+        "minutes_ago": 5
+      },
+      {
+        "level": "ERROR",
+        "service": "rke-backend",
+        "message": "[INC-004] Configuration regression: simulation.config-regression.max-items-per-order=0. Value was changed from known-good value (50) and is causing all order validations to fail.",
+        "exception": "com.rke.backend.simulation.SimulationException",
+        "minutes_ago": 4
+      }
+    ],
+    "mock_commits": [
+      {
+        "subject": "test: set max-items-per-order=0 to simulate config regression INC-004",
+        "minutes_ago": 30,
+        "files": [
+          "backend/src/main/resources/application-simulation.yml"
+        ]
+      }
+    ],
+    "mock_historical_incidents": [],
+    "expected_root_cause_keywords": [
+      "config",
+      "regression",
+      "max-items",
+      "zero",
+      "validation"
+    ],
+    "expected_affected_services": [
+      "rke-backend"
+    ],
+    "expected_evidence_types": [
+      "LOG",
+      "GIT"
+    ],
+    "expected_similar_incident_ids": [],
+    "expected_resolution_keywords": [
+      "config",
+      "revert",
+      "max-items",
+      "application-simulation"
+    ],
+    "expected_status": "complete",
+    "expected_min_confidence": 0.6
+  },
+  {
+    "case_id": "rke-eval-005",
+    "description": "RKE INC-005: Cascading failure \u2014 PricingService \u2192 RatingEngine \u2192 IOException",
+    "tags": [
+      "rke",
+      "cascade",
+      "dependency_failure",
+      "latency",
+      "high"
+    ],
+    "incident": {
+      "incident_id": "rke-eval-005-incident",
+      "application": "rke-backend",
+      "environment": "local-docker",
+      "title": "RKE backend: Cascading dependency failure \u2014 PricingService unavailable",
+      "description": "Three-layer dependency failure: Controller \u2192 PricingService \u2192 RatingEngine \u2192 IOException. Each layer logged independently.",
+      "severity": "high",
+      "status": "open",
+      "start_time": "2026-09-19T10:00:00Z",
+      "affected_services": [
+        "rke-backend"
+      ]
+    },
+    "mock_logs": [
+      {
+        "level": "ERROR",
+        "service": "rke-backend",
+        "message": "[INC-005] [RatingEngine] Connection to external rate feed timed out after 500ms",
+        "exception": "java.io.IOException",
+        "minutes_ago": 7
+      },
+      {
+        "level": "ERROR",
+        "service": "rke-backend",
+        "message": "[INC-005] [PricingService] Downstream failure from RatingEngine: Connection timeout reaching external rate feed (simulated)",
+        "exception": "java.lang.RuntimeException",
+        "minutes_ago": 6
+      },
+      {
+        "level": "ERROR",
+        "service": "rke-backend",
+        "message": "[INC-005] [IncidentController] Upstream failure: PricingService unavailable \u2014 order cannot be processed: Failed to compute price: RatingEngine returned error",
+        "exception": "com.rke.backend.simulation.SimulationException",
+        "minutes_ago": 5
+      }
+    ],
+    "mock_commits": [
+      {
+        "subject": "feat: integrate external RatingEngine for dynamic pricing",
+        "minutes_ago": 120,
+        "files": [
+          "backend/src/main/java/com/rke/backend/simulation/scenario/CascadeFailureScenario.java"
+        ]
+      }
+    ],
+    "mock_historical_incidents": [],
+    "expected_root_cause_keywords": [
+      "cascade",
+      "pricing",
+      "rating",
+      "timeout",
+      "downstream"
+    ],
+    "expected_affected_services": [
+      "rke-backend"
+    ],
+    "expected_evidence_types": [
+      "LOG",
+      "GIT"
+    ],
+    "expected_similar_incident_ids": [],
+    "expected_resolution_keywords": [
+      "circuit",
+      "breaker",
+      "timeout",
+      "retry",
+      "fallback"
+    ],
+    "expected_status": "complete",
+    "expected_min_confidence": 0.55
+  },
+  {
+    "case_id": "rke-eval-006",
+    "description": "RKE INC-006: Similar historical incident \u2014 pool exhaustion v2 should match INC-001",
+    "tags": [
+      "rke",
+      "database",
+      "connection_pool",
+      "historical_match",
+      "high"
+    ],
+    "incident": {
+      "incident_id": "rke-eval-006-incident",
+      "application": "rke-backend",
+      "environment": "local-docker",
+      "title": "RKE backend: HikariCP pool exhausted \u2014 POST /api/sales/cash returning 500",
+      "description": "Pool exhaustion variant: maximumPoolSize=2, 3 concurrent holders, probe timeout 2500ms. Different endpoint and timestamp from INC-001 but same failure class.",
+      "severity": "high",
+      "status": "open",
+      "start_time": "2026-10-15T14:10:00Z",
+      "affected_services": [
+        "rke-backend"
+      ]
+    },
+    "mock_logs": [
+      {
+        "level": "INFO",
+        "service": "rke-backend",
+        "message": "HikariPool-1 - Start completed. maximumPoolSize=2",
+        "minutes_ago": 10
+      },
+      {
+        "level": "WARN",
+        "service": "rke-backend",
+        "message": "HikariPool-1 - Connection acquisition took 1890ms \u2014 pool under pressure (active=2, idle=0, waiting=3)",
+        "minutes_ago": 8
+      },
+      {
+        "level": "WARN",
+        "service": "rke-backend",
+        "message": "HikariPool-1 - Thread starvation detected. (waiting=4, active=2)",
+        "minutes_ago": 7
+      },
+      {
+        "level": "ERROR",
+        "service": "rke-backend",
+        "message": "HikariPool-1 - Connection is not available, request timed out after 2500ms. Concurrent requests exhausted the pool.",
+        "exception": "java.sql.SQLTimeoutException",
+        "minutes_ago": 5
+      },
+      {
+        "level": "WARN",
+        "service": "rke-backend",
+        "message": "HikariPool-1 - Possible connection leak detected on thread pool-1-thread-3 \u2014 connection held for 4200ms",
+        "minutes_ago": 3
+      }
+    ],
+    "mock_commits": [],
+    "mock_historical_incidents": [
+      {
+        "incident_id": "rke-ctrl-002",
+        "title": "RKE backend: PostgreSQL query timeout \u2014 connection pool exhausted",
+        "description": "High query latency causing HikariCP connection pool to saturate. HikariPool-1 Connection is not available, request timed out after 30000ms. Slow SQL on villages table took 8200ms.",
+        "similarity_score": 0.72
+      }
+    ],
+    "expected_root_cause_keywords": [
+      "hikari",
+      "pool",
+      "exhausted",
+      "connection",
+      "timeout"
+    ],
+    "expected_affected_services": [
+      "rke-backend"
+    ],
+    "expected_evidence_types": [
+      "LOG",
+      "INCIDENT"
+    ],
+    "expected_similar_incident_ids": [
+      "rke-ctrl-002"
+    ],
+    "expected_resolution_keywords": [
+      "pool",
+      "size",
+      "leak",
+      "connection"
+    ],
+    "expected_status": "complete",
+    "expected_min_confidence": 0.55
   }
 ]

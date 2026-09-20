@@ -1,0 +1,1920 @@
+{
+  "run_id": "20260920T062936Z",
+  "run_at": "2026-09-20T06:29:36.908675+00:00",
+  "total_cases": 26,
+  "passed_cases": 26,
+  "failed_cases": 0,
+  "root_cause_accuracy": 0.9461538461538462,
+  "evidence_accuracy": 0.9923076923076923,
+  "historical_retrieval_accuracy": 1.0,
+  "hallucination_rate": 0.0,
+  "confidence_calibration": 0.9961538461538461,
+  "avg_latency_seconds": 0.0019805112309628525,
+  "avg_tokens_estimated": 1548.8076923076924,
+  "case_results": [
+    {
+      "case_id": "eval-001",
+      "description": "Classic database connection pool exhaustion on payment service",
+      "tags": [
+        "database",
+        "connection_pool",
+        "critical"
+      ],
+      "overall_passed": true,
+      "metrics": [
+        {
+          "name": "root_cause_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": "Expected keywords: ['connection', 'pool', 'exhausted', 'database']. Overlap: 1.00. Agent summary: 'Root cause: connection pool exhausted database'"
+        },
+        {
+          "name": "evidence_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": "Expected: {'GIT', 'LOG'}. Actual: {'GIT', 'LOG'}. Jaccard: 1.00"
+        },
+        {
+          "name": "historical_retrieval_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": "No historical incidents expected."
+        },
+        {
+          "name": "hallucination_detection",
+          "score": 1.0,
+          "passed": true,
+          "details": "No hallucination detected."
+        },
+        {
+          "name": "confidence_calibration",
+          "score": 1.0,
+          "passed": true,
+          "details": "Expected status=complete, min_confidence=0.60. Actual confidence=0.60."
+        },
+        {
+          "name": "latency",
+          "score": 0.0047,
+          "passed": null,
+          "details": "Investigation completed in 0.005s."
+        },
+        {
+          "name": "token_usage",
+          "score": 1935.0,
+          "passed": null,
+          "details": "~1935 tokens estimated from 7740 chars across 7 LLM calls."
+        }
+      ]
+    },
+    {
+      "case_id": "eval-002",
+      "description": "Redis cache timeout cascading to auth service",
+      "tags": [
+        "cache",
+        "timeout",
+        "cascade",
+        "high"
+      ],
+      "overall_passed": true,
+      "metrics": [
+        {
+          "name": "root_cause_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": "Expected keywords: ['redis', 'timeout', 'cache']. Overlap: 1.00. Agent summary: 'Root cause: redis timeout cache'"
+        },
+        {
+          "name": "evidence_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": "Expected: {'INCIDENT', 'LOG'}. Actual: {'INCIDENT', 'LOG'}. Jaccard: 1.00"
+        },
+        {
+          "name": "historical_retrieval_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": "Expected: {'INC-HIST-002'}. Retrieved: {'INC-HIST-002'}. Recall: 1.00"
+        },
+        {
+          "name": "hallucination_detection",
+          "score": 1.0,
+          "passed": true,
+          "details": "No hallucination detected."
+        },
+        {
+          "name": "confidence_calibration",
+          "score": 1.0,
+          "passed": true,
+          "details": "Expected status=complete, min_confidence=0.55. Actual confidence=0.55."
+        },
+        {
+          "name": "latency",
+          "score": 0.0021,
+          "passed": null,
+          "details": "Investigation completed in 0.002s."
+        },
+        {
+          "name": "token_usage",
+          "score": 1571.0,
+          "passed": null,
+          "details": "~1571 tokens estimated from 6287 chars across 7 LLM calls."
+        }
+      ]
+    },
+    {
+      "case_id": "eval-003",
+      "description": "Bad config deployment breaks API gateway health checks",
+      "tags": [
+        "config_change",
+        "deployment",
+        "gateway",
+        "high"
+      ],
+      "overall_passed": true,
+      "metrics": [
+        {
+          "name": "root_cause_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": "Expected keywords: ['health', 'check', 'config', 'path']. Overlap: 1.00. Agent summary: 'Root cause: health check config path'"
+        },
+        {
+          "name": "evidence_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": "Expected: {'GIT', 'LOG'}. Actual: {'GIT', 'LOG'}. Jaccard: 1.00"
+        },
+        {
+          "name": "historical_retrieval_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": "No historical incidents expected."
+        },
+        {
+          "name": "hallucination_detection",
+          "score": 1.0,
+          "passed": true,
+          "details": "No hallucination detected."
+        },
+        {
+          "name": "confidence_calibration",
+          "score": 1.0,
+          "passed": true,
+          "details": "Expected status=complete, min_confidence=0.60. Actual confidence=0.60."
+        },
+        {
+          "name": "latency",
+          "score": 0.0021,
+          "passed": null,
+          "details": "Investigation completed in 0.002s."
+        },
+        {
+          "name": "token_usage",
+          "score": 1575.0,
+          "passed": null,
+          "details": "~1575 tokens estimated from 6300 chars across 7 LLM calls."
+        }
+      ]
+    },
+    {
+      "case_id": "eval-004",
+      "description": "Slow PostgreSQL query degrading order fulfilment latency",
+      "tags": [
+        "database",
+        "slow_query",
+        "performance",
+        "medium"
+      ],
+      "overall_passed": true,
+      "metrics": [
+        {
+          "name": "root_cause_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": "Expected keywords: ['slow', 'query', 'index', 'database']. Overlap: 1.00. Agent summary: 'Root cause: slow query index database'"
+        },
+        {
+          "name": "evidence_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": "Expected: {'GIT', 'INCIDENT', 'LOG'}. Actual: {'GIT', 'INCIDENT', 'LOG'}. Jaccard: 1.00"
+        },
+        {
+          "name": "historical_retrieval_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": "Expected: {'INC-HIST-004'}. Retrieved: {'INC-HIST-004'}. Recall: 1.00"
+        },
+        {
+          "name": "hallucination_detection",
+          "score": 1.0,
+          "passed": true,
+          "details": "No hallucination detected."
+        },
+        {
+          "name": "confidence_calibration",
+          "score": 1.0,
+          "passed": true,
+          "details": "Expected status=complete, min_confidence=0.50. Actual confidence=0.50."
+        },
+        {
+          "name": "latency",
+          "score": 0.0018,
+          "passed": null,
+          "details": "Investigation completed in 0.002s."
+        },
+        {
+          "name": "token_usage",
+          "score": 1676.0,
+          "passed": null,
+          "details": "~1676 tokens estimated from 6704 chars across 8 LLM calls."
+        }
+      ]
+    },
+    {
+      "case_id": "eval-005",
+      "description": "Frontend/backend API contract mismatch after backend deploy",
+      "tags": [
+        "api_contract",
+        "deployment",
+        "frontend",
+        "high"
+      ],
+      "overall_passed": true,
+      "metrics": [
+        {
+          "name": "root_cause_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": "Expected keywords: ['api', 'contract', 'rename', 'field']. Overlap: 1.00. Agent summary: 'Root cause: api contract rename field'"
+        },
+        {
+          "name": "evidence_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": "Expected: {'GIT', 'LOG'}. Actual: {'GIT', 'LOG'}. Jaccard: 1.00"
+        },
+        {
+          "name": "historical_retrieval_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": "No historical incidents expected."
+        },
+        {
+          "name": "hallucination_detection",
+          "score": 1.0,
+          "passed": true,
+          "details": "No hallucination detected."
+        },
+        {
+          "name": "confidence_calibration",
+          "score": 1.0,
+          "passed": true,
+          "details": "Expected status=complete, min_confidence=0.55. Actual confidence=0.55."
+        },
+        {
+          "name": "latency",
+          "score": 0.002,
+          "passed": null,
+          "details": "Investigation completed in 0.002s."
+        },
+        {
+          "name": "token_usage",
+          "score": 1377.0,
+          "passed": null,
+          "details": "~1377 tokens estimated from 5508 chars across 7 LLM calls."
+        }
+      ]
+    },
+    {
+      "case_id": "eval-006",
+      "description": "Token signing service unavailable \u2014 auth failures",
+      "tags": [
+        "service_unavailable",
+        "auth",
+        "high"
+      ],
+      "overall_passed": true,
+      "metrics": [
+        {
+          "name": "root_cause_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": "Expected keywords: ['token', 'signing', 'service', 'unavailable']. Overlap: 1.00. Agent summary: 'Root cause: token signing service unavailable'"
+        },
+        {
+          "name": "evidence_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": "Expected: {'LOG'}. Actual: {'LOG'}. Jaccard: 1.00"
+        },
+        {
+          "name": "historical_retrieval_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": "No historical incidents expected."
+        },
+        {
+          "name": "hallucination_detection",
+          "score": 1.0,
+          "passed": true,
+          "details": "No hallucination detected."
+        },
+        {
+          "name": "confidence_calibration",
+          "score": 1.0,
+          "passed": true,
+          "details": "Expected status=partial, min_confidence=0.35. Actual confidence=0.35."
+        },
+        {
+          "name": "latency",
+          "score": 0.0019,
+          "passed": null,
+          "details": "Investigation completed in 0.002s."
+        },
+        {
+          "name": "token_usage",
+          "score": 1328.0,
+          "passed": null,
+          "details": "~1328 tokens estimated from 5315 chars across 6 LLM calls."
+        }
+      ]
+    },
+    {
+      "case_id": "eval-007",
+      "description": "Payment refund processor timeout",
+      "tags": [
+        "timeout",
+        "payments",
+        "high"
+      ],
+      "overall_passed": true,
+      "metrics": [
+        {
+          "name": "root_cause_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": "Expected keywords: ['timeout', 'refund', 'processor', 'gateway']. Overlap: 1.00. Agent summary: 'Root cause: timeout refund processor gateway'"
+        },
+        {
+          "name": "evidence_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": "Expected: {'INCIDENT', 'LOG'}. Actual: {'INCIDENT', 'LOG'}. Jaccard: 1.00"
+        },
+        {
+          "name": "historical_retrieval_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": "Expected: {'INC-HIST-007'}. Retrieved: {'INC-HIST-007'}. Recall: 1.00"
+        },
+        {
+          "name": "hallucination_detection",
+          "score": 1.0,
+          "passed": true,
+          "details": "No hallucination detected."
+        },
+        {
+          "name": "confidence_calibration",
+          "score": 1.0,
+          "passed": true,
+          "details": "Expected status=partial, min_confidence=0.35. Actual confidence=0.35."
+        },
+        {
+          "name": "latency",
+          "score": 0.002,
+          "passed": null,
+          "details": "Investigation completed in 0.002s."
+        },
+        {
+          "name": "token_usage",
+          "score": 1422.0,
+          "passed": null,
+          "details": "~1422 tokens estimated from 5688 chars across 7 LLM calls."
+        }
+      ]
+    },
+    {
+      "case_id": "eval-008",
+      "description": "Inventory service replica lag causing read timeouts",
+      "tags": [
+        "database",
+        "replica_lag",
+        "timeout",
+        "medium"
+      ],
+      "overall_passed": true,
+      "metrics": [
+        {
+          "name": "root_cause_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": "Expected keywords: ['replica', 'lag', 'database', 'timeout']. Overlap: 1.00. Agent summary: 'Root cause: replica lag database timeout'"
+        },
+        {
+          "name": "evidence_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": "Expected: {'LOG'}. Actual: {'LOG'}. Jaccard: 1.00"
+        },
+        {
+          "name": "historical_retrieval_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": "No historical incidents expected."
+        },
+        {
+          "name": "hallucination_detection",
+          "score": 1.0,
+          "passed": true,
+          "details": "No hallucination detected."
+        },
+        {
+          "name": "confidence_calibration",
+          "score": 1.0,
+          "passed": true,
+          "details": "Expected status=complete, min_confidence=0.45. Actual confidence=0.45."
+        },
+        {
+          "name": "latency",
+          "score": 0.0018,
+          "passed": null,
+          "details": "Investigation completed in 0.002s."
+        },
+        {
+          "name": "token_usage",
+          "score": 1316.0,
+          "passed": null,
+          "details": "~1316 tokens estimated from 5267 chars across 6 LLM calls."
+        }
+      ]
+    },
+    {
+      "case_id": "eval-009",
+      "description": "OOM kill on fulfilment worker pods \u2014 memory leak",
+      "tags": [
+        "memory",
+        "oom",
+        "infrastructure",
+        "medium"
+      ],
+      "overall_passed": true,
+      "metrics": [
+        {
+          "name": "root_cause_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": "Expected keywords: ['memory', 'oom', 'heap', 'leak']. Overlap: 1.00. Agent summary: 'Root cause: memory oom heap leak'"
+        },
+        {
+          "name": "evidence_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": "Expected: {'GIT', 'LOG'}. Actual: {'GIT', 'LOG'}. Jaccard: 1.00"
+        },
+        {
+          "name": "historical_retrieval_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": "No historical incidents expected."
+        },
+        {
+          "name": "hallucination_detection",
+          "score": 1.0,
+          "passed": true,
+          "details": "No hallucination detected."
+        },
+        {
+          "name": "confidence_calibration",
+          "score": 1.0,
+          "passed": true,
+          "details": "Expected status=complete, min_confidence=0.50. Actual confidence=0.50."
+        },
+        {
+          "name": "latency",
+          "score": 0.0018,
+          "passed": null,
+          "details": "Investigation completed in 0.002s."
+        },
+        {
+          "name": "token_usage",
+          "score": 1525.0,
+          "passed": null,
+          "details": "~1525 tokens estimated from 6102 chars across 7 LLM calls."
+        }
+      ]
+    },
+    {
+      "case_id": "eval-010",
+      "description": "Notification service dead letter queue overflow",
+      "tags": [
+        "queue",
+        "overflow",
+        "medium"
+      ],
+      "overall_passed": true,
+      "metrics": [
+        {
+          "name": "root_cause_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": "Expected keywords: ['queue', 'dead', 'letter', 'capacity']. Overlap: 1.00. Agent summary: 'Root cause: queue dead letter capacity'"
+        },
+        {
+          "name": "evidence_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": "Expected: {'LOG'}. Actual: {'LOG'}. Jaccard: 1.00"
+        },
+        {
+          "name": "historical_retrieval_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": "No historical incidents expected."
+        },
+        {
+          "name": "hallucination_detection",
+          "score": 1.0,
+          "passed": true,
+          "details": "No hallucination detected."
+        },
+        {
+          "name": "confidence_calibration",
+          "score": 1.0,
+          "passed": true,
+          "details": "Expected status=partial, min_confidence=0.35. Actual confidence=0.35."
+        },
+        {
+          "name": "latency",
+          "score": 0.0017,
+          "passed": null,
+          "details": "Investigation completed in 0.002s."
+        },
+        {
+          "name": "token_usage",
+          "score": 1329.0,
+          "passed": null,
+          "details": "~1329 tokens estimated from 5319 chars across 6 LLM calls."
+        }
+      ]
+    },
+    {
+      "case_id": "eval-011",
+      "description": "SSL certificate expiry causing TLS handshake failures",
+      "tags": [
+        "tls",
+        "certificate",
+        "infrastructure",
+        "critical"
+      ],
+      "overall_passed": true,
+      "metrics": [
+        {
+          "name": "root_cause_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": "Expected keywords: ['certificate', 'expired', 'tls', 'ssl']. Overlap: 1.00. Agent summary: 'Root cause: certificate expired tls ssl'"
+        },
+        {
+          "name": "evidence_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": "Expected: {'LOG'}. Actual: {'LOG'}. Jaccard: 1.00"
+        },
+        {
+          "name": "historical_retrieval_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": "No historical incidents expected."
+        },
+        {
+          "name": "hallucination_detection",
+          "score": 1.0,
+          "passed": true,
+          "details": "No hallucination detected."
+        },
+        {
+          "name": "confidence_calibration",
+          "score": 1.0,
+          "passed": true,
+          "details": "Expected status=complete, min_confidence=0.55. Actual confidence=0.55."
+        },
+        {
+          "name": "latency",
+          "score": 0.0018,
+          "passed": null,
+          "details": "Investigation completed in 0.002s."
+        },
+        {
+          "name": "token_usage",
+          "score": 1334.0,
+          "passed": null,
+          "details": "~1334 tokens estimated from 5337 chars across 6 LLM calls."
+        }
+      ]
+    },
+    {
+      "case_id": "eval-012",
+      "description": "Rate limiting too aggressive after config change",
+      "tags": [
+        "rate_limiting",
+        "config_change",
+        "medium"
+      ],
+      "overall_passed": true,
+      "metrics": [
+        {
+          "name": "root_cause_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": "Expected keywords: ['rate', 'limit', 'config', 'threshold']. Overlap: 1.00. Agent summary: 'Root cause: rate limit config threshold'"
+        },
+        {
+          "name": "evidence_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": "Expected: {'GIT', 'LOG'}. Actual: {'GIT', 'LOG'}. Jaccard: 1.00"
+        },
+        {
+          "name": "historical_retrieval_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": "No historical incidents expected."
+        },
+        {
+          "name": "hallucination_detection",
+          "score": 1.0,
+          "passed": true,
+          "details": "No hallucination detected."
+        },
+        {
+          "name": "confidence_calibration",
+          "score": 1.0,
+          "passed": true,
+          "details": "Expected status=complete, min_confidence=0.50. Actual confidence=0.50."
+        },
+        {
+          "name": "latency",
+          "score": 0.0018,
+          "passed": null,
+          "details": "Investigation completed in 0.002s."
+        },
+        {
+          "name": "token_usage",
+          "score": 1345.0,
+          "passed": null,
+          "details": "~1345 tokens estimated from 5382 chars across 7 LLM calls."
+        }
+      ]
+    },
+    {
+      "case_id": "eval-013",
+      "description": "Circular dependency after service refactor causes startup failure",
+      "tags": [
+        "code_bug",
+        "startup",
+        "dependency",
+        "high"
+      ],
+      "overall_passed": true,
+      "metrics": [
+        {
+          "name": "root_cause_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": "Expected keywords: ['circular', 'import', 'dependency', 'refactor']. Overlap: 1.00. Agent summary: 'Root cause: circular import dependency refactor'"
+        },
+        {
+          "name": "evidence_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": "Expected: {'GIT', 'LOG'}. Actual: {'GIT', 'LOG'}. Jaccard: 1.00"
+        },
+        {
+          "name": "historical_retrieval_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": "No historical incidents expected."
+        },
+        {
+          "name": "hallucination_detection",
+          "score": 1.0,
+          "passed": true,
+          "details": "No hallucination detected."
+        },
+        {
+          "name": "confidence_calibration",
+          "score": 1.0,
+          "passed": true,
+          "details": "Expected status=complete, min_confidence=0.55. Actual confidence=0.55."
+        },
+        {
+          "name": "latency",
+          "score": 0.0019,
+          "passed": null,
+          "details": "Investigation completed in 0.002s."
+        },
+        {
+          "name": "token_usage",
+          "score": 1423.0,
+          "passed": null,
+          "details": "~1423 tokens estimated from 5695 chars across 7 LLM calls."
+        }
+      ]
+    },
+    {
+      "case_id": "eval-014",
+      "description": "No evidence available \u2014 truly unknown root cause",
+      "tags": [
+        "insufficient_evidence",
+        "unknown"
+      ],
+      "overall_passed": true,
+      "metrics": [
+        {
+          "name": "root_cause_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": "No root cause expected and none found (or low confidence)."
+        },
+        {
+          "name": "evidence_accuracy",
+          "score": 0.8,
+          "passed": true,
+          "details": "No evidence types expected. Actual: {'LOG'}"
+        },
+        {
+          "name": "historical_retrieval_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": "No historical incidents expected."
+        },
+        {
+          "name": "hallucination_detection",
+          "score": 1.0,
+          "passed": true,
+          "details": "No hallucination detected."
+        },
+        {
+          "name": "confidence_calibration",
+          "score": 0.9,
+          "passed": true,
+          "details": "Expected insufficient_evidence (confidence < 0.5). Actual confidence=0.10."
+        },
+        {
+          "name": "latency",
+          "score": 0.0017,
+          "passed": null,
+          "details": "Investigation completed in 0.002s."
+        },
+        {
+          "name": "token_usage",
+          "score": 835.0,
+          "passed": null,
+          "details": "~835 tokens estimated from 3340 chars across 5 LLM calls."
+        }
+      ]
+    },
+    {
+      "case_id": "eval-015",
+      "description": "Database migration rollback failure corrupts schema",
+      "tags": [
+        "database",
+        "migration",
+        "critical"
+      ],
+      "overall_passed": true,
+      "metrics": [
+        {
+          "name": "root_cause_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": "Expected keywords: ['migration', 'schema', 'rollback', 'column']. Overlap: 1.00. Agent summary: 'Root cause: migration schema rollback column'"
+        },
+        {
+          "name": "evidence_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": "Expected: {'GIT', 'LOG'}. Actual: {'GIT', 'LOG'}. Jaccard: 1.00"
+        },
+        {
+          "name": "historical_retrieval_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": "No historical incidents expected."
+        },
+        {
+          "name": "hallucination_detection",
+          "score": 1.0,
+          "passed": true,
+          "details": "No hallucination detected."
+        },
+        {
+          "name": "confidence_calibration",
+          "score": 1.0,
+          "passed": true,
+          "details": "Expected status=complete, min_confidence=0.55. Actual confidence=0.55."
+        },
+        {
+          "name": "latency",
+          "score": 0.0019,
+          "passed": null,
+          "details": "Investigation completed in 0.002s."
+        },
+        {
+          "name": "token_usage",
+          "score": 1649.0,
+          "passed": null,
+          "details": "~1649 tokens estimated from 6599 chars across 7 LLM calls."
+        }
+      ]
+    },
+    {
+      "case_id": "eval-016",
+      "description": "Third-party payment gateway degradation \u2014 partial failure",
+      "tags": [
+        "third_party",
+        "dependency_failure",
+        "payments",
+        "high"
+      ],
+      "overall_passed": true,
+      "metrics": [
+        {
+          "name": "root_cause_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": "Expected keywords: ['stripe', 'external', 'service', 'unavailable']. Overlap: 1.00. Agent summary: 'Root cause: stripe external service unavailable'"
+        },
+        {
+          "name": "evidence_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": "Expected: {'INCIDENT', 'LOG'}. Actual: {'INCIDENT', 'LOG'}. Jaccard: 1.00"
+        },
+        {
+          "name": "historical_retrieval_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": "Expected: {'INC-HIST-016'}. Retrieved: {'INC-HIST-016'}. Recall: 1.00"
+        },
+        {
+          "name": "hallucination_detection",
+          "score": 1.0,
+          "passed": true,
+          "details": "No hallucination detected."
+        },
+        {
+          "name": "confidence_calibration",
+          "score": 1.0,
+          "passed": true,
+          "details": "Expected status=complete, min_confidence=0.50. Actual confidence=0.50."
+        },
+        {
+          "name": "latency",
+          "score": 0.0021,
+          "passed": null,
+          "details": "Investigation completed in 0.002s."
+        },
+        {
+          "name": "token_usage",
+          "score": 1460.0,
+          "passed": null,
+          "details": "~1460 tokens estimated from 5841 chars across 7 LLM calls."
+        }
+      ]
+    },
+    {
+      "case_id": "eval-017",
+      "description": "Service mesh misconfiguration causes intermittent 503s",
+      "tags": [
+        "infrastructure",
+        "service_mesh",
+        "config_change",
+        "medium"
+      ],
+      "overall_passed": true,
+      "metrics": [
+        {
+          "name": "root_cause_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": "Expected keywords: ['mtls', 'certificate', 'mesh', 'policy']. Overlap: 1.00. Agent summary: 'Root cause: mtls certificate mesh policy'"
+        },
+        {
+          "name": "evidence_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": "Expected: {'GIT', 'LOG'}. Actual: {'GIT', 'LOG'}. Jaccard: 1.00"
+        },
+        {
+          "name": "historical_retrieval_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": "No historical incidents expected."
+        },
+        {
+          "name": "hallucination_detection",
+          "score": 1.0,
+          "passed": true,
+          "details": "No hallucination detected."
+        },
+        {
+          "name": "confidence_calibration",
+          "score": 1.0,
+          "passed": true,
+          "details": "Expected status=complete, min_confidence=0.50. Actual confidence=0.50."
+        },
+        {
+          "name": "latency",
+          "score": 0.0018,
+          "passed": null,
+          "details": "Investigation completed in 0.002s."
+        },
+        {
+          "name": "token_usage",
+          "score": 1400.0,
+          "passed": null,
+          "details": "~1400 tokens estimated from 5600 chars across 7 LLM calls."
+        }
+      ]
+    },
+    {
+      "case_id": "eval-018",
+      "description": "Historical incident correctly retrieved and used for inference",
+      "tags": [
+        "historical_match",
+        "database",
+        "high"
+      ],
+      "overall_passed": true,
+      "metrics": [
+        {
+          "name": "root_cause_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": "Expected keywords: ['connection', 'pool', 'exhausted', 'hikari']. Overlap: 1.00. Agent summary: 'Root cause: connection pool exhausted hikari'"
+        },
+        {
+          "name": "evidence_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": "Expected: {'INCIDENT', 'LOG'}. Actual: {'INCIDENT', 'LOG'}. Jaccard: 1.00"
+        },
+        {
+          "name": "historical_retrieval_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": "Expected: {'INC-HIST-001'}. Retrieved: {'INC-HIST-001'}. Recall: 1.00"
+        },
+        {
+          "name": "hallucination_detection",
+          "score": 1.0,
+          "passed": true,
+          "details": "No hallucination detected."
+        },
+        {
+          "name": "confidence_calibration",
+          "score": 1.0,
+          "passed": true,
+          "details": "Expected status=complete, min_confidence=0.50. Actual confidence=0.50."
+        },
+        {
+          "name": "latency",
+          "score": 0.0017,
+          "passed": null,
+          "details": "Investigation completed in 0.002s."
+        },
+        {
+          "name": "token_usage",
+          "score": 1291.0,
+          "passed": null,
+          "details": "~1291 tokens estimated from 5165 chars across 7 LLM calls."
+        }
+      ]
+    },
+    {
+      "case_id": "eval-019",
+      "description": "Conflicting evidence \u2014 two plausible root causes",
+      "tags": [
+        "conflicting_evidence",
+        "database",
+        "medium"
+      ],
+      "overall_passed": true,
+      "metrics": [
+        {
+          "name": "root_cause_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": "Expected keywords: ['query', 'slow', 'aggregation']. Overlap: 1.00. Agent summary: 'Root cause: query slow aggregation'"
+        },
+        {
+          "name": "evidence_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": "Expected: {'GIT', 'LOG'}. Actual: {'GIT', 'LOG'}. Jaccard: 1.00"
+        },
+        {
+          "name": "historical_retrieval_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": "No historical incidents expected."
+        },
+        {
+          "name": "hallucination_detection",
+          "score": 1.0,
+          "passed": true,
+          "details": "No hallucination detected."
+        },
+        {
+          "name": "confidence_calibration",
+          "score": 1.0,
+          "passed": true,
+          "details": "Expected status=partial, min_confidence=0.30. Actual confidence=0.30."
+        },
+        {
+          "name": "latency",
+          "score": 0.002,
+          "passed": null,
+          "details": "Investigation completed in 0.002s."
+        },
+        {
+          "name": "token_usage",
+          "score": 1420.0,
+          "passed": null,
+          "details": "~1420 tokens estimated from 5680 chars across 7 LLM calls."
+        }
+      ]
+    },
+    {
+      "case_id": "eval-020",
+      "description": "Deployment rollback resolves incident \u2014 resolution tracking",
+      "tags": [
+        "deployment",
+        "rollback",
+        "resolved",
+        "critical"
+      ],
+      "overall_passed": true,
+      "metrics": [
+        {
+          "name": "root_cause_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": "Expected keywords: ['null', 'pointer', 'exception', 'deploy']. Overlap: 1.00. Agent summary: 'Root cause: null pointer exception deploy'"
+        },
+        {
+          "name": "evidence_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": "Expected: {'GIT', 'LOG'}. Actual: {'GIT', 'LOG'}. Jaccard: 1.00"
+        },
+        {
+          "name": "historical_retrieval_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": "No historical incidents expected."
+        },
+        {
+          "name": "hallucination_detection",
+          "score": 1.0,
+          "passed": true,
+          "details": "No hallucination detected."
+        },
+        {
+          "name": "confidence_calibration",
+          "score": 1.0,
+          "passed": true,
+          "details": "Expected status=complete, min_confidence=0.60. Actual confidence=0.60."
+        },
+        {
+          "name": "latency",
+          "score": 0.0018,
+          "passed": null,
+          "details": "Investigation completed in 0.002s."
+        },
+        {
+          "name": "token_usage",
+          "score": 1701.0,
+          "passed": null,
+          "details": "~1701 tokens estimated from 6804 chars across 7 LLM calls."
+        }
+      ]
+    },
+    {
+      "case_id": "rke-eval-001",
+      "description": "RKE INC-001: PostgreSQL connection pool exhaustion \u2014 HikariCP saturated",
+      "tags": [
+        "rke",
+        "database",
+        "connection_pool",
+        "hikaricp",
+        "critical"
+      ],
+      "overall_passed": true,
+      "metrics": [
+        {
+          "name": "root_cause_accuracy",
+          "score": 0.8,
+          "passed": true,
+          "details": "Expected keywords: ['hikari', 'pool', 'timeout', 'connection', 'exhausted']. Overlap: 0.80. Agent summary: 'Root cause: hikari pool timeout connection'"
+        },
+        {
+          "name": "evidence_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": "Expected: {'GIT', 'LOG'}. Actual: {'GIT', 'LOG'}. Jaccard: 1.00"
+        },
+        {
+          "name": "historical_retrieval_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": "No historical incidents expected."
+        },
+        {
+          "name": "hallucination_detection",
+          "score": 1.0,
+          "passed": true,
+          "details": "No hallucination detected."
+        },
+        {
+          "name": "confidence_calibration",
+          "score": 1.0,
+          "passed": true,
+          "details": "Expected status=complete, min_confidence=0.60. Actual confidence=0.60."
+        },
+        {
+          "name": "latency",
+          "score": 0.0016,
+          "passed": null,
+          "details": "Investigation completed in 0.002s."
+        },
+        {
+          "name": "token_usage",
+          "score": 2019.0,
+          "passed": null,
+          "details": "~2019 tokens estimated from 8079 chars across 7 LLM calls."
+        }
+      ]
+    },
+    {
+      "case_id": "rke-eval-002",
+      "description": "RKE INC-002: Slow PostgreSQL query \u2014 pg_sleep simulation introduces 5s latency",
+      "tags": [
+        "rke",
+        "database",
+        "slow_query",
+        "latency",
+        "medium"
+      ],
+      "overall_passed": true,
+      "metrics": [
+        {
+          "name": "root_cause_accuracy",
+          "score": 0.8,
+          "passed": true,
+          "details": "Expected keywords: ['slow', 'query', 'latency', 'hibernate', 'database']. Overlap: 0.80. Agent summary: 'Root cause: slow query latency hibernate'"
+        },
+        {
+          "name": "evidence_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": "Expected: {'GIT', 'LOG'}. Actual: {'GIT', 'LOG'}. Jaccard: 1.00"
+        },
+        {
+          "name": "historical_retrieval_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": "No historical incidents expected."
+        },
+        {
+          "name": "hallucination_detection",
+          "score": 1.0,
+          "passed": true,
+          "details": "No hallucination detected."
+        },
+        {
+          "name": "confidence_calibration",
+          "score": 1.0,
+          "passed": true,
+          "details": "Expected status=complete, min_confidence=0.50. Actual confidence=0.50."
+        },
+        {
+          "name": "latency",
+          "score": 0.0018,
+          "passed": null,
+          "details": "Investigation completed in 0.002s."
+        },
+        {
+          "name": "token_usage",
+          "score": 1834.0,
+          "passed": null,
+          "details": "~1834 tokens estimated from 7338 chars across 7 LLM calls."
+        }
+      ]
+    },
+    {
+      "case_id": "rke-eval-003",
+      "description": "RKE INC-003: Backend application exception \u2014 ArithmeticException in price calculation",
+      "tags": [
+        "rke",
+        "code_bug",
+        "exception",
+        "http_500",
+        "high"
+      ],
+      "overall_passed": true,
+      "metrics": [
+        {
+          "name": "root_cause_accuracy",
+          "score": 0.8,
+          "passed": true,
+          "details": "Expected keywords: ['arithmetic', 'overflow', 'price', 'calculation', 'exception']. Overlap: 0.80. Agent summary: 'Root cause: arithmetic overflow price calculation'"
+        },
+        {
+          "name": "evidence_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": "Expected: {'GIT', 'LOG'}. Actual: {'GIT', 'LOG'}. Jaccard: 1.00"
+        },
+        {
+          "name": "historical_retrieval_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": "No historical incidents expected."
+        },
+        {
+          "name": "hallucination_detection",
+          "score": 1.0,
+          "passed": true,
+          "details": "No hallucination detected."
+        },
+        {
+          "name": "confidence_calibration",
+          "score": 1.0,
+          "passed": true,
+          "details": "Expected status=complete, min_confidence=0.55. Actual confidence=0.55."
+        },
+        {
+          "name": "latency",
+          "score": 0.0019,
+          "passed": null,
+          "details": "Investigation completed in 0.002s."
+        },
+        {
+          "name": "token_usage",
+          "score": 1958.0,
+          "passed": null,
+          "details": "~1958 tokens estimated from 7832 chars across 7 LLM calls."
+        }
+      ]
+    },
+    {
+      "case_id": "rke-eval-004",
+      "description": "RKE INC-004: Configuration regression \u2014 max-items-per-order=0 breaks order validation",
+      "tags": [
+        "rke",
+        "config_change",
+        "regression",
+        "critical"
+      ],
+      "overall_passed": true,
+      "metrics": [
+        {
+          "name": "root_cause_accuracy",
+          "score": 0.6,
+          "passed": true,
+          "details": "Expected keywords: ['config', 'regression', 'max-items', 'zero', 'validation']. Overlap: 0.60. Agent summary: 'Root cause: config regression max-items zero'"
+        },
+        {
+          "name": "evidence_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": "Expected: {'GIT', 'LOG'}. Actual: {'GIT', 'LOG'}. Jaccard: 1.00"
+        },
+        {
+          "name": "historical_retrieval_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": "No historical incidents expected."
+        },
+        {
+          "name": "hallucination_detection",
+          "score": 1.0,
+          "passed": true,
+          "details": "No hallucination detected."
+        },
+        {
+          "name": "confidence_calibration",
+          "score": 1.0,
+          "passed": true,
+          "details": "Expected status=complete, min_confidence=0.60. Actual confidence=0.60."
+        },
+        {
+          "name": "latency",
+          "score": 0.0019,
+          "passed": null,
+          "details": "Investigation completed in 0.002s."
+        },
+        {
+          "name": "token_usage",
+          "score": 1718.0,
+          "passed": null,
+          "details": "~1718 tokens estimated from 6874 chars across 7 LLM calls."
+        }
+      ]
+    },
+    {
+      "case_id": "rke-eval-005",
+      "description": "RKE INC-005: Cascading failure \u2014 PricingService \u2192 RatingEngine \u2192 IOException",
+      "tags": [
+        "rke",
+        "cascade",
+        "dependency_failure",
+        "latency",
+        "high"
+      ],
+      "overall_passed": true,
+      "metrics": [
+        {
+          "name": "root_cause_accuracy",
+          "score": 0.8,
+          "passed": true,
+          "details": "Expected keywords: ['cascade', 'pricing', 'rating', 'timeout', 'downstream']. Overlap: 0.80. Agent summary: 'Root cause: cascade pricing rating timeout'"
+        },
+        {
+          "name": "evidence_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": "Expected: {'GIT', 'LOG'}. Actual: {'GIT', 'LOG'}. Jaccard: 1.00"
+        },
+        {
+          "name": "historical_retrieval_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": "No historical incidents expected."
+        },
+        {
+          "name": "hallucination_detection",
+          "score": 1.0,
+          "passed": true,
+          "details": "No hallucination detected."
+        },
+        {
+          "name": "confidence_calibration",
+          "score": 1.0,
+          "passed": true,
+          "details": "Expected status=complete, min_confidence=0.55. Actual confidence=0.55."
+        },
+        {
+          "name": "latency",
+          "score": 0.002,
+          "passed": null,
+          "details": "Investigation completed in 0.002s."
+        },
+        {
+          "name": "token_usage",
+          "score": 1974.0,
+          "passed": null,
+          "details": "~1974 tokens estimated from 7897 chars across 7 LLM calls."
+        }
+      ]
+    },
+    {
+      "case_id": "rke-eval-006",
+      "description": "RKE INC-006: Similar historical incident \u2014 pool exhaustion v2 should match INC-001",
+      "tags": [
+        "rke",
+        "database",
+        "connection_pool",
+        "historical_match",
+        "high"
+      ],
+      "overall_passed": true,
+      "metrics": [
+        {
+          "name": "root_cause_accuracy",
+          "score": 0.8,
+          "passed": true,
+          "details": "Expected keywords: ['hikari', 'pool', 'exhausted', 'connection', 'timeout']. Overlap: 0.80. Agent summary: 'Root cause: hikari pool exhausted connection'"
+        },
+        {
+          "name": "evidence_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": "Expected: {'INCIDENT', 'LOG'}. Actual: {'INCIDENT', 'LOG'}. Jaccard: 1.00"
+        },
+        {
+          "name": "historical_retrieval_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": "Expected: {'rke-ctrl-002'}. Retrieved: {'rke-ctrl-002'}. Recall: 1.00"
+        },
+        {
+          "name": "hallucination_detection",
+          "score": 1.0,
+          "passed": true,
+          "details": "No hallucination detected."
+        },
+        {
+          "name": "confidence_calibration",
+          "score": 1.0,
+          "passed": true,
+          "details": "Expected status=complete, min_confidence=0.55. Actual confidence=0.55."
+        },
+        {
+          "name": "latency",
+          "score": 0.0021,
+          "passed": null,
+          "details": "Investigation completed in 0.002s."
+        },
+        {
+          "name": "token_usage",
+          "score": 1854.0,
+          "passed": null,
+          "details": "~1854 tokens estimated from 7416 chars across 7 LLM calls."
+        }
+      ]
+    }
+  ],
+  "regression_vs_baseline": {},
+  "repeated_run_summary": {
+    "rke-eval-001": {
+      "description": "RKE INC-001: PostgreSQL connection pool exhaustion \u2014 HikariCP saturated",
+      "n_runs": 3,
+      "pass_rate": 1.0,
+      "rc_accuracy_mean": 0.8,
+      "rc_accuracy_std": 0.0,
+      "confidence_std": 0.0,
+      "run_details": [
+        {
+          "run": 1,
+          "passed": true,
+          "rc_accuracy": 0.8,
+          "latency_s": 0.012
+        },
+        {
+          "run": 2,
+          "passed": true,
+          "rc_accuracy": 0.8,
+          "latency_s": 0.0124
+        },
+        {
+          "run": 3,
+          "passed": true,
+          "rc_accuracy": 0.8,
+          "latency_s": 0.0129
+        }
+      ]
+    },
+    "rke-eval-002": {
+      "description": "RKE INC-002: Slow PostgreSQL query \u2014 pg_sleep simulation introduces 5s latency",
+      "n_runs": 3,
+      "pass_rate": 1.0,
+      "rc_accuracy_mean": 0.8,
+      "rc_accuracy_std": 0.0,
+      "confidence_std": 0.0,
+      "run_details": [
+        {
+          "run": 1,
+          "passed": true,
+          "rc_accuracy": 0.8,
+          "latency_s": 0.0128
+        },
+        {
+          "run": 2,
+          "passed": true,
+          "rc_accuracy": 0.8,
+          "latency_s": 0.0128
+        },
+        {
+          "run": 3,
+          "passed": true,
+          "rc_accuracy": 0.8,
+          "latency_s": 0.0128
+        }
+      ]
+    },
+    "rke-eval-003": {
+      "description": "RKE INC-003: Backend application exception \u2014 ArithmeticException in price calculation",
+      "n_runs": 3,
+      "pass_rate": 1.0,
+      "rc_accuracy_mean": 0.8,
+      "rc_accuracy_std": 0.0,
+      "confidence_std": 0.0,
+      "run_details": [
+        {
+          "run": 1,
+          "passed": true,
+          "rc_accuracy": 0.8,
+          "latency_s": 0.0127
+        },
+        {
+          "run": 2,
+          "passed": true,
+          "rc_accuracy": 0.8,
+          "latency_s": 0.0127
+        },
+        {
+          "run": 3,
+          "passed": true,
+          "rc_accuracy": 0.8,
+          "latency_s": 0.0129
+        }
+      ]
+    },
+    "rke-eval-004": {
+      "description": "RKE INC-004: Configuration regression \u2014 max-items-per-order=0 breaks order validation",
+      "n_runs": 3,
+      "pass_rate": 1.0,
+      "rc_accuracy_mean": 0.6,
+      "rc_accuracy_std": 0.0,
+      "confidence_std": 0.0,
+      "run_details": [
+        {
+          "run": 1,
+          "passed": true,
+          "rc_accuracy": 0.6,
+          "latency_s": 0.0139
+        },
+        {
+          "run": 2,
+          "passed": true,
+          "rc_accuracy": 0.6,
+          "latency_s": 0.0129
+        },
+        {
+          "run": 3,
+          "passed": true,
+          "rc_accuracy": 0.6,
+          "latency_s": 0.0127
+        }
+      ]
+    },
+    "rke-eval-005": {
+      "description": "RKE INC-005: Cascading failure \u2014 PricingService \u2192 RatingEngine \u2192 IOException",
+      "n_runs": 3,
+      "pass_rate": 1.0,
+      "rc_accuracy_mean": 0.8,
+      "rc_accuracy_std": 0.0,
+      "confidence_std": 0.0,
+      "run_details": [
+        {
+          "run": 1,
+          "passed": true,
+          "rc_accuracy": 0.8,
+          "latency_s": 0.0129
+        },
+        {
+          "run": 2,
+          "passed": true,
+          "rc_accuracy": 0.8,
+          "latency_s": 0.0121
+        },
+        {
+          "run": 3,
+          "passed": true,
+          "rc_accuracy": 0.8,
+          "latency_s": 0.0126
+        }
+      ]
+    },
+    "rke-eval-006": {
+      "description": "RKE INC-006: Similar historical incident \u2014 pool exhaustion v2 should match INC-001",
+      "n_runs": 3,
+      "pass_rate": 1.0,
+      "rc_accuracy_mean": 0.8,
+      "rc_accuracy_std": 0.0,
+      "confidence_std": 0.0,
+      "run_details": [
+        {
+          "run": 1,
+          "passed": true,
+          "rc_accuracy": 0.8,
+          "latency_s": 0.0123
+        },
+        {
+          "run": 2,
+          "passed": true,
+          "rc_accuracy": 0.8,
+          "latency_s": 0.0128
+        },
+        {
+          "run": 3,
+          "passed": true,
+          "rc_accuracy": 0.8,
+          "latency_s": 0.0125
+        }
+      ]
+    }
+  },
+  "memory_comparison": {
+    "total_compared": 6,
+    "root_cause_accuracy": {
+      "without_memory": 0.9667,
+      "with_memory": 0.9667,
+      "delta": 0.0
+    },
+    "confidence": {
+      "without_memory": 1.0,
+      "with_memory": 1.0,
+      "delta": 0.0
+    },
+    "historical_recall_with_memory": 1.0,
+    "latency_seconds": {
+      "without_memory": 0.0145,
+      "with_memory": 0.0127,
+      "delta": -0.0018
+    },
+    "tokens_estimated": {
+      "without_memory": 1402.5,
+      "with_memory": 1545.7,
+      "delta": 143.2
+    },
+    "case_breakdown": {
+      "memory_improved_rc": 0,
+      "memory_degraded_rc": 0,
+      "memory_neutral_rc": 6
+    }
+  },
+  "failure_analysis": [],
+  "tag_breakdown": {
+    "api_contract": {
+      "total": 1,
+      "passed": 1,
+      "pass_rate": 1.0,
+      "avg_rc_accuracy": 1.0
+    },
+    "auth": {
+      "total": 1,
+      "passed": 1,
+      "pass_rate": 1.0,
+      "avg_rc_accuracy": 1.0
+    },
+    "cache": {
+      "total": 1,
+      "passed": 1,
+      "pass_rate": 1.0,
+      "avg_rc_accuracy": 1.0
+    },
+    "cascade": {
+      "total": 2,
+      "passed": 2,
+      "pass_rate": 1.0,
+      "avg_rc_accuracy": 0.9
+    },
+    "certificate": {
+      "total": 1,
+      "passed": 1,
+      "pass_rate": 1.0,
+      "avg_rc_accuracy": 1.0
+    },
+    "code_bug": {
+      "total": 2,
+      "passed": 2,
+      "pass_rate": 1.0,
+      "avg_rc_accuracy": 0.9
+    },
+    "config_change": {
+      "total": 4,
+      "passed": 4,
+      "pass_rate": 1.0,
+      "avg_rc_accuracy": 0.9
+    },
+    "conflicting_evidence": {
+      "total": 1,
+      "passed": 1,
+      "pass_rate": 1.0,
+      "avg_rc_accuracy": 1.0
+    },
+    "connection_pool": {
+      "total": 3,
+      "passed": 3,
+      "pass_rate": 1.0,
+      "avg_rc_accuracy": 0.8667
+    },
+    "critical": {
+      "total": 6,
+      "passed": 6,
+      "pass_rate": 1.0,
+      "avg_rc_accuracy": 0.9
+    },
+    "database": {
+      "total": 9,
+      "passed": 9,
+      "pass_rate": 1.0,
+      "avg_rc_accuracy": 0.9333
+    },
+    "dependency": {
+      "total": 1,
+      "passed": 1,
+      "pass_rate": 1.0,
+      "avg_rc_accuracy": 1.0
+    },
+    "dependency_failure": {
+      "total": 2,
+      "passed": 2,
+      "pass_rate": 1.0,
+      "avg_rc_accuracy": 0.9
+    },
+    "deployment": {
+      "total": 3,
+      "passed": 3,
+      "pass_rate": 1.0,
+      "avg_rc_accuracy": 1.0
+    },
+    "exception": {
+      "total": 1,
+      "passed": 1,
+      "pass_rate": 1.0,
+      "avg_rc_accuracy": 0.8
+    },
+    "frontend": {
+      "total": 1,
+      "passed": 1,
+      "pass_rate": 1.0,
+      "avg_rc_accuracy": 1.0
+    },
+    "gateway": {
+      "total": 1,
+      "passed": 1,
+      "pass_rate": 1.0,
+      "avg_rc_accuracy": 1.0
+    },
+    "high": {
+      "total": 11,
+      "passed": 11,
+      "pass_rate": 1.0,
+      "avg_rc_accuracy": 0.9455
+    },
+    "hikaricp": {
+      "total": 1,
+      "passed": 1,
+      "pass_rate": 1.0,
+      "avg_rc_accuracy": 0.8
+    },
+    "historical_match": {
+      "total": 2,
+      "passed": 2,
+      "pass_rate": 1.0,
+      "avg_rc_accuracy": 0.9
+    },
+    "http_500": {
+      "total": 1,
+      "passed": 1,
+      "pass_rate": 1.0,
+      "avg_rc_accuracy": 0.8
+    },
+    "infrastructure": {
+      "total": 3,
+      "passed": 3,
+      "pass_rate": 1.0,
+      "avg_rc_accuracy": 1.0
+    },
+    "insufficient_evidence": {
+      "total": 1,
+      "passed": 1,
+      "pass_rate": 1.0,
+      "avg_rc_accuracy": 1.0
+    },
+    "latency": {
+      "total": 2,
+      "passed": 2,
+      "pass_rate": 1.0,
+      "avg_rc_accuracy": 0.8
+    },
+    "medium": {
+      "total": 8,
+      "passed": 8,
+      "pass_rate": 1.0,
+      "avg_rc_accuracy": 0.975
+    },
+    "memory": {
+      "total": 1,
+      "passed": 1,
+      "pass_rate": 1.0,
+      "avg_rc_accuracy": 1.0
+    },
+    "migration": {
+      "total": 1,
+      "passed": 1,
+      "pass_rate": 1.0,
+      "avg_rc_accuracy": 1.0
+    },
+    "oom": {
+      "total": 1,
+      "passed": 1,
+      "pass_rate": 1.0,
+      "avg_rc_accuracy": 1.0
+    },
+    "overflow": {
+      "total": 1,
+      "passed": 1,
+      "pass_rate": 1.0,
+      "avg_rc_accuracy": 1.0
+    },
+    "payments": {
+      "total": 2,
+      "passed": 2,
+      "pass_rate": 1.0,
+      "avg_rc_accuracy": 1.0
+    },
+    "performance": {
+      "total": 1,
+      "passed": 1,
+      "pass_rate": 1.0,
+      "avg_rc_accuracy": 1.0
+    },
+    "queue": {
+      "total": 1,
+      "passed": 1,
+      "pass_rate": 1.0,
+      "avg_rc_accuracy": 1.0
+    },
+    "rate_limiting": {
+      "total": 1,
+      "passed": 1,
+      "pass_rate": 1.0,
+      "avg_rc_accuracy": 1.0
+    },
+    "regression": {
+      "total": 1,
+      "passed": 1,
+      "pass_rate": 1.0,
+      "avg_rc_accuracy": 0.6
+    },
+    "replica_lag": {
+      "total": 1,
+      "passed": 1,
+      "pass_rate": 1.0,
+      "avg_rc_accuracy": 1.0
+    },
+    "resolved": {
+      "total": 1,
+      "passed": 1,
+      "pass_rate": 1.0,
+      "avg_rc_accuracy": 1.0
+    },
+    "rke": {
+      "total": 6,
+      "passed": 6,
+      "pass_rate": 1.0,
+      "avg_rc_accuracy": 0.7667
+    },
+    "rollback": {
+      "total": 1,
+      "passed": 1,
+      "pass_rate": 1.0,
+      "avg_rc_accuracy": 1.0
+    },
+    "service_mesh": {
+      "total": 1,
+      "passed": 1,
+      "pass_rate": 1.0,
+      "avg_rc_accuracy": 1.0
+    },
+    "service_unavailable": {
+      "total": 1,
+      "passed": 1,
+      "pass_rate": 1.0,
+      "avg_rc_accuracy": 1.0
+    },
+    "slow_query": {
+      "total": 2,
+      "passed": 2,
+      "pass_rate": 1.0,
+      "avg_rc_accuracy": 0.9
+    },
+    "startup": {
+      "total": 1,
+      "passed": 1,
+      "pass_rate": 1.0,
+      "avg_rc_accuracy": 1.0
+    },
+    "third_party": {
+      "total": 1,
+      "passed": 1,
+      "pass_rate": 1.0,
+      "avg_rc_accuracy": 1.0
+    },
+    "timeout": {
+      "total": 3,
+      "passed": 3,
+      "pass_rate": 1.0,
+      "avg_rc_accuracy": 1.0
+    },
+    "tls": {
+      "total": 1,
+      "passed": 1,
+      "pass_rate": 1.0,
+      "avg_rc_accuracy": 1.0
+    },
+    "unknown": {
+      "total": 1,
+      "passed": 1,
+      "pass_rate": 1.0,
+      "avg_rc_accuracy": 1.0
+    }
+  }
+}

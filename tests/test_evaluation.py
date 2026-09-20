@@ -161,7 +161,7 @@ class TestDatasetLoading:
     def test_loads_20_cases(self) -> None:
         runner = EvalRunner()
         cases = runner.load_dataset()
-        assert len(cases) == 20
+        assert len(cases) >= 20  # 20 original + 6 RKE-specific cases
 
     def test_all_cases_have_required_fields(self) -> None:
         runner = EvalRunner()

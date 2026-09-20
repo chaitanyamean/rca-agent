@@ -380,3 +380,125 @@ ALL_EVALUATORS = [
     HallucinationEvaluator(),
     ConfidenceEvaluator(),
 ]
+
+
+# ---------------------------------------------------------------------------
+# Evaluator 8 — Memory Comparison (with vs without historical memory)
+# ---------------------------------------------------------------------------
+
+@dataclass
+class MemoryComparisonResult:
+    """Holds paired results from runs with and without historical memory."""
+    case_id: str
+    without_memory: RCAResult
+    with_memory: RCAResult
+    latency_without: float
+    latency_with: float
+    tokens_without: float
+    tokens_with: float
+
+
+@dataclass
+class MemoryComparisonMetrics:
+    """Aggregate metrics from a memory comparison experiment."""
+    total_compared: int
+    rc_accuracy_without: float
+    rc_accuracy_with: float
+    confidence_without: float
+    confidence_with: float
+    historical_recall_with: float       # only measured on "with" run
+    avg_latency_without: float
+    avg_latency_with: float
+    avg_tokens_without: float
+    avg_tokens_with: float
+    memory_improved_rc: int             # cases where rc_accuracy improved with memory
+    memory_degraded_rc: int             # cases where rc_accuracy degraded with memory
+    memory_neutral_rc: int              # cases with no change
+
+    def to_dict(self) -> dict:
+        return {
+            "total_compared": self.total_compared,
+            "root_cause_accuracy": {
+                "without_memory": round(self.rc_accuracy_without, 4),
+                "with_memory": round(self.rc_accuracy_with, 4),
+                "delta": round(self.rc_accuracy_with - self.rc_accuracy_without, 4),
+            },
+            "confidence": {
+                "without_memory": round(self.confidence_without, 4),
+                "with_memory": round(self.confidence_with, 4),
+                "delta": round(self.confidence_with - self.confidence_without, 4),
+            },
+            "historical_recall_with_memory": round(self.historical_recall_with, 4),
+            "latency_seconds": {
+                "without_memory": round(self.avg_latency_without, 4),
+                "with_memory": round(self.avg_latency_with, 4),
+                "delta": round(self.avg_latency_with - self.avg_latency_without, 4),
+            },
+            "tokens_estimated": {
+                "without_memory": round(self.avg_tokens_without, 1),
+                "with_memory": round(self.avg_tokens_with, 1),
+                "delta": round(self.avg_tokens_with - self.avg_tokens_without, 1),
+            },
+            "case_breakdown": {
+                "memory_improved_rc": self.memory_improved_rc,
+                "memory_degraded_rc": self.memory_degraded_rc,
+                "memory_neutral_rc": self.memory_neutral_rc,
+            },
+        }
+
+    def narrative(self) -> str:
+        """Return a plain-English summary suitable for the report."""
+        rc_delta = self.rc_accuracy_with - self.rc_accuracy_without
+        conf_delta = self.confidence_with - self.confidence_without
+        lat_delta = self.avg_latency_with - self.avg_latency_without
+
+        direction = (
+            "improved" if rc_delta > 0.02 else
+            "degraded" if rc_delta < -0.02 else
+            "unchanged"
+        )
+
+        lines = [
+            f"Memory comparison across {self.total_compared} case(s):",
+            f"  Root cause accuracy: {self.rc_accuracy_without:.3f} → {self.rc_accuracy_with:.3f} "
+            f"({rc_delta:+.3f}) — {direction}",
+            f"  Confidence:         {self.confidence_without:.3f} → {self.confidence_with:.3f} "
+            f"({conf_delta:+.3f})",
+            f"  Historical recall (with memory): {self.historical_recall_with:.3f}",
+            f"  Avg latency:        {self.avg_latency_without:.3f}s → {self.avg_latency_with:.3f}s "
+            f"({lat_delta:+.3f}s)",
+            f"  Cases improved / degraded / neutral: "
+            f"{self.memory_improved_rc} / {self.memory_degraded_rc} / {self.memory_neutral_rc}",
+            "",
+            "Interpretation:",
+        ]
+
+        if direction == "improved":
+            lines.append(
+                f"  Historical memory improved root cause accuracy by {rc_delta:.3f}. "
+                "Historical evidence provided additional context."
+            )
+        elif direction == "degraded":
+            lines.append(
+                f"  Historical memory degraded accuracy by {abs(rc_delta):.3f}. "
+                "This may indicate the retrieved incidents introduced noise or "
+                "conflicting evidence. Review the failure analysis."
+            )
+        else:
+            lines.append(
+                "  Historical memory had no significant impact on root cause accuracy. "
+                "Improvement may appear in future runs with more diverse incident history."
+            )
+
+        if lat_delta > 0.05:
+            lines.append(
+                f"  Historical memory added {lat_delta:.3f}s latency on average "
+                "(vector search overhead)."
+            )
+
+        lines.append(
+            "NOTE: Memory is supporting evidence only. "
+            "Current telemetry must always be the primary evidence basis."
+        )
+
+        return "\n".join(lines)

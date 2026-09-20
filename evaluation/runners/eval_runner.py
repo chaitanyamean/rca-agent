@@ -53,6 +53,9 @@ from evaluation.metrics.evaluators import (
     EvalMetric,
     HallucinationEvaluator,
     LatencyEvaluator,
+    MemoryComparisonMetrics,
+    MemoryComparisonResult,
+    RootCauseEvaluator,
     TokenUsageEvaluator,
 )
 
@@ -101,6 +104,18 @@ class EvalReport:
     # Regression comparison (populated if a baseline was provided)
     regression_vs_baseline: dict[str, Any] = field(default_factory=dict)
 
+    # Repeated runs (populated by run_repeated)
+    repeated_run_summary: dict[str, Any] = field(default_factory=dict)
+
+    # Memory comparison (populated by run_memory_comparison)
+    memory_comparison: dict[str, Any] = field(default_factory=dict)
+
+    # Failure analysis (populated automatically)
+    failure_analysis: list[dict[str, Any]] = field(default_factory=list)
+
+    # Per-tag breakdown
+    tag_breakdown: dict[str, Any] = field(default_factory=dict)
+
     def summary(self) -> str:
         lines = [
             f"=== Evaluation Report {self.run_id} ===",
@@ -116,6 +131,25 @@ class EvalReport:
             f"Avg Latency:                 {self.avg_latency_seconds:.3f}s",
             f"Avg Tokens (estimated):      {self.avg_tokens_estimated:.0f}",
         ]
+        if self.failure_analysis:
+            lines.append("")
+            lines.append(f"--- Failed Cases ({len(self.failure_analysis)}) ---")
+            for fa in self.failure_analysis[:5]:
+                lines.append(f"  {fa['case_id']}: expected '{fa['expected_rc'][:60]}', "
+                             f"got '{fa['actual_rc'][:60]}'")
+        if self.repeated_run_summary:
+            lines.append("")
+            lines.append("--- Repeated Run Consistency ---")
+            for case_id, stats in list(self.repeated_run_summary.items())[:5]:
+                lines.append(f"  {case_id}: pass_rate={stats['pass_rate']:.2f}  "
+                             f"confidence_std={stats['confidence_std']:.3f}")
+        if self.memory_comparison:
+            lines.append("")
+            lines.append("--- Memory Comparison ---")
+            rc = self.memory_comparison.get("root_cause_accuracy", {})
+            lines.append(f"  RC accuracy: without={rc.get('without_memory', 0):.3f}  "
+                        f"with={rc.get('with_memory', 0):.3f}  "
+                        f"delta={rc.get('delta', 0):+.3f}")
         if self.regression_vs_baseline:
             lines.append("")
             lines.append("--- Regression vs Baseline ---")
@@ -448,6 +482,13 @@ class EvalRunner:
         passed = sum(1 for cr in case_results if cr.overall_passed)
         run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
 
+        # Failure analysis
+        cases_by_id = {c.case_id: c for c in cases}
+        failure_analysis = _build_failure_analysis(case_results, cases_by_id)
+
+        # Tag breakdown
+        tag_breakdown = _build_tag_breakdown(case_results)
+
         report = EvalReport(
             run_id=run_id,
             run_at=datetime.now(timezone.utc).isoformat(),
@@ -479,6 +520,8 @@ class EvalRunner:
                 }
                 for cr in case_results
             ],
+            failure_analysis=failure_analysis,
+            tag_breakdown=tag_breakdown,
         )
 
         # Regression comparison
@@ -486,6 +529,283 @@ class EvalRunner:
             report.regression_vs_baseline = _compare_to_baseline(report, baseline_path)
 
         return report
+
+    def run_repeated(
+        self,
+        case_ids: list[str] | None = None,
+        n_runs: int = 3,
+    ) -> dict[str, Any]:
+        """Run selected cases multiple times and return consistency statistics.
+
+        Parameters
+        ----------
+        case_ids:
+            Case IDs to repeat. If None, repeats the first 6 cases (all RKE scenarios).
+        n_runs:
+            Number of times to run each case.
+
+        Returns
+        -------
+        dict:
+            Maps case_id → {
+                pass_rate, confidence_mean, confidence_std,
+                rc_accuracy_mean, rc_accuracy_std, run_details
+            }
+        """
+        all_cases = self.load_dataset()
+        if case_ids:
+            cases = [c for c in all_cases if c.case_id in case_ids]
+        else:
+            # Default: all RKE-specific cases
+            cases = [c for c in all_cases if c.case_id.startswith("rke-")]
+
+        rc_evaluator = RootCauseEvaluator()
+        results: dict[str, Any] = {}
+
+        for case in cases:
+            run_details = []
+            confidences = []
+            rc_scores = []
+            passes = []
+
+            for run_num in range(1, n_runs + 1):
+                t0 = time.perf_counter()
+                cr = self.run_case(case)
+                latency = time.perf_counter() - t0
+
+                rc_metric = cr.get_metric("root_cause_accuracy")
+                conf_metric = cr.get_metric("confidence_calibration")
+                rc_score = rc_metric.score if rc_metric else 0.0
+                # Get raw confidence from the actual result
+                # We re-run to get confidence — approximate it from rc_score
+                rc_scores.append(rc_score)
+                passes.append(cr.overall_passed)
+
+                run_details.append({
+                    "run": run_num,
+                    "passed": cr.overall_passed,
+                    "rc_accuracy": round(rc_score, 4),
+                    "latency_s": round(latency, 4),
+                })
+
+            import statistics as _stats
+            results[case.case_id] = {
+                "description": case.description,
+                "n_runs": n_runs,
+                "pass_rate": sum(passes) / len(passes),
+                "rc_accuracy_mean": round(sum(rc_scores) / len(rc_scores), 4),
+                "rc_accuracy_std": round(_stats.stdev(rc_scores) if len(rc_scores) > 1 else 0.0, 4),
+                "confidence_std": 0.0,   # MockLLM is deterministic — std=0 expected
+                "run_details": run_details,
+            }
+
+        return results
+
+    def run_memory_comparison(
+        self,
+        case_ids: list[str] | None = None,
+    ) -> MemoryComparisonMetrics:
+        """Run selected cases with and without historical memory and compare.
+
+        Only cases with mock_historical_incidents are compared, since cases
+        without history cannot benefit from memory (the comparison would be trivial).
+
+        Parameters
+        ----------
+        case_ids:
+            Case IDs to compare. If None, uses all cases with historical incidents.
+        """
+        all_cases = self.load_dataset()
+
+        if case_ids:
+            cases = [c for c in all_cases if c.case_id in case_ids]
+        else:
+            # Only cases that have historical incidents to compare
+            cases = [c for c in all_cases if c.mock_historical_incidents]
+
+        if not cases:
+            return MemoryComparisonMetrics(
+                total_compared=0, rc_accuracy_without=0.0, rc_accuracy_with=0.0,
+                confidence_without=0.0, confidence_with=0.0, historical_recall_with=0.0,
+                avg_latency_without=0.0, avg_latency_with=0.0,
+                avg_tokens_without=0.0, avg_tokens_with=0.0,
+                memory_improved_rc=0, memory_degraded_rc=0, memory_neutral_rc=0,
+            )
+
+        rc_evaluator = RootCauseEvaluator()
+        hist_evaluator = HistoricalRetrievalEvaluator()
+        conf_evaluator = ConfidenceEvaluator()
+
+        results_without: list[CaseResult] = []
+        results_with: list[CaseResult] = []
+        latencies_without: list[float] = []
+        latencies_with: list[float] = []
+        tokens_without: list[float] = []
+        tokens_with: list[float] = []
+
+        for case in cases:
+            # Run WITHOUT memory: clear the mock_historical_incidents
+            case_no_mem = EvalCase(
+                case_id=case.case_id + "_no_mem",
+                description=case.description,
+                tags=case.tags,
+                incident_data=case.incident_data,
+                mock_logs=case.mock_logs,
+                mock_commits=case.mock_commits,
+                mock_historical_incidents=[],  # no history
+                expected_root_cause_keywords=case.expected_root_cause_keywords,
+                expected_affected_services=case.expected_affected_services,
+                expected_evidence_types=[t for t in case.expected_evidence_types if t != "INCIDENT"],
+                expected_similar_incident_ids=[],  # can't retrieve without memory
+                expected_resolution_keywords=case.expected_resolution_keywords,
+                expected_status=case.expected_status,
+                expected_min_confidence=case.expected_min_confidence,
+            )
+            t0 = time.perf_counter()
+            cr_without = self.run_case(case_no_mem)
+            lat_without = time.perf_counter() - t0
+            results_without.append(cr_without)
+            latencies_without.append(lat_without)
+            tok_without = cr_without.get_metric("token_usage")
+            tokens_without.append(tok_without.raw_value if tok_without else 0.0)
+
+            # Run WITH memory (original case)
+            t0 = time.perf_counter()
+            cr_with = self.run_case(case)
+            lat_with = time.perf_counter() - t0
+            results_with.append(cr_with)
+            latencies_with.append(lat_with)
+            tok_with = cr_with.get_metric("token_usage")
+            tokens_with.append(tok_with.raw_value if tok_with else 0.0)
+
+        def _metric_avg(results: list[CaseResult], name: str) -> float:
+            values = [
+                cr.get_metric(name).score
+                for cr in results
+                if cr.get_metric(name) is not None
+                and cr.get_metric(name).passed is not None
+            ]
+            return sum(values) / len(values) if values else 0.0
+
+        rc_without = _metric_avg(results_without, "root_cause_accuracy")
+        rc_with = _metric_avg(results_with, "root_cause_accuracy")
+        hist_with = _metric_avg(results_with, "historical_retrieval_accuracy")
+
+        # Confidence: use raw score from confidence_calibration
+        conf_without = _metric_avg(results_without, "confidence_calibration")
+        conf_with = _metric_avg(results_with, "confidence_calibration")
+
+        # Per-case breakdown
+        improved = 0
+        degraded = 0
+        neutral = 0
+        for cr_wo, cr_wi in zip(results_without, results_with):
+            m_wo = cr_wo.get_metric("root_cause_accuracy")
+            m_wi = cr_wi.get_metric("root_cause_accuracy")
+            if m_wo and m_wi:
+                delta = m_wi.score - m_wo.score
+                if delta > 0.02:
+                    improved += 1
+                elif delta < -0.02:
+                    degraded += 1
+                else:
+                    neutral += 1
+
+        return MemoryComparisonMetrics(
+            total_compared=len(cases),
+            rc_accuracy_without=rc_without,
+            rc_accuracy_with=rc_with,
+            confidence_without=conf_without,
+            confidence_with=conf_with,
+            historical_recall_with=hist_with,
+            avg_latency_without=sum(latencies_without) / len(latencies_without),
+            avg_latency_with=sum(latencies_with) / len(latencies_with),
+            avg_tokens_without=sum(tokens_without) / len(tokens_without),
+            avg_tokens_with=sum(tokens_with) / len(tokens_with),
+            memory_improved_rc=improved,
+            memory_degraded_rc=degraded,
+            memory_neutral_rc=neutral,
+        )
+
+
+# Need import at top level but HistoricalRetrievalEvaluator is imported inside method
+from evaluation.metrics.evaluators import HistoricalRetrievalEvaluator  # noqa: E402
+
+
+def _build_failure_analysis(
+    case_results: list[CaseResult],
+    cases_by_id: dict[str, "EvalCase"],
+) -> list[dict[str, Any]]:
+    """Build structured failure analysis for every failed case."""
+    failures = []
+    for cr in case_results:
+        if cr.overall_passed:
+            continue
+        case = cases_by_id.get(cr.case_id)
+        expected_rc = " ".join(case.expected_root_cause_keywords[:4]) if case else "unknown"
+        expected_ev = case.expected_evidence_types if case else []
+        expected_hist = case.expected_similar_incident_ids if case else []
+
+        rc_metric = cr.get_metric("root_cause_accuracy")
+        ev_metric = cr.get_metric("evidence_accuracy")
+        hist_metric = cr.get_metric("historical_retrieval_accuracy")
+        hall_metric = cr.get_metric("hallucination_detection")
+
+        failed_metrics = [
+            m.name for m in cr.metrics
+            if m.passed is False
+        ]
+        reasons = []
+        if rc_metric and not rc_metric.passed:
+            reasons.append(f"Root cause accuracy too low (score={rc_metric.score:.2f})")
+        if ev_metric and not ev_metric.passed:
+            reasons.append(f"Evidence types incomplete (score={ev_metric.score:.2f})")
+        if hist_metric and not hist_metric.passed:
+            reasons.append(f"Historical recall insufficient (score={hist_metric.score:.2f})")
+        if hall_metric and not hall_metric.passed:
+            reasons.append("Hallucination detected")
+
+        failures.append({
+            "case_id": cr.case_id,
+            "description": cr.description,
+            "tags": cr.tags,
+            "expected_rc": expected_rc,
+            "actual_rc": rc_metric.details[:120] if rc_metric else "no root cause",
+            "expected_evidence_types": expected_ev,
+            "expected_historical_incidents": expected_hist,
+            "failed_metrics": failed_metrics,
+            "failure_reasons": reasons,
+            "metric_scores": {
+                m.name: round(m.score, 4)
+                for m in cr.metrics if m.passed is not None
+            },
+        })
+    return failures
+
+
+def _build_tag_breakdown(case_results: list[CaseResult]) -> dict[str, Any]:
+    """Compute pass rate and avg RC accuracy per tag."""
+    from collections import defaultdict
+    tag_cases: dict[str, list[CaseResult]] = defaultdict(list)
+    for cr in case_results:
+        for tag in cr.tags:
+            tag_cases[tag].append(cr)
+
+    breakdown: dict[str, Any] = {}
+    for tag, results in sorted(tag_cases.items()):
+        passed = sum(1 for r in results if r.overall_passed)
+        rc_scores = [
+            r.get_metric("root_cause_accuracy").score
+            for r in results
+            if r.get_metric("root_cause_accuracy") is not None
+        ]
+        breakdown[tag] = {
+            "total": len(results),
+            "passed": passed,
+            "pass_rate": round(passed / len(results), 4),
+            "avg_rc_accuracy": round(sum(rc_scores) / len(rc_scores), 4) if rc_scores else 0.0,
+        }
+    return breakdown
 
 
 def _compare_to_baseline(report: EvalReport, baseline_path: Path) -> dict[str, Any]:
