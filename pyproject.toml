@@ -35,6 +35,13 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# Real LLM providers — install with: pip install "rca-agent[llm]"
+llm = [
+    "langchain-openai>=0.1.0",
+    "langchain-anthropic>=0.1.0",
+    # tiktoken for accurate token counting (used by langchain-openai automatically)
+    "tiktoken>=0.7.0",
+]
 dev = [
     "pytest>=8.2.0",
     "pytest-asyncio>=0.23.0",

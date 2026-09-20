@@ -72,6 +72,15 @@ class RCAAgent:
         When True (default), the completed RCA is automatically persisted
         to ``memory`` via ``RCAMemoryWriter`` at the end of ``investigate()``.
         Set to False to disable automatic persistence (e.g. for dry-runs).
+        Note: auto_store_rca is automatically forced to False when
+        memory_enabled=False to prevent Memory-OFF results from polluting
+        the historical corpus.
+    memory_enabled:
+        When True (default), Node 5 queries historical incident memory and
+        injects retrieved incidents as contextual evidence.
+        When False, Node 5 is replaced with a no-op — no historical evidence
+        is retrieved, and auto_store_rca is implicitly suppressed.
+        This is the primary experimental variable for Phase 3.
     """
 
     def __init__(
@@ -86,6 +95,7 @@ class RCAAgent:
         similar_incidents_top_k: int = 5,
         trace_provider: TraceProvider | None = None,
         auto_store_rca: bool = True,
+        memory_enabled: bool = True,
     ) -> None:
         self._graph = build_rca_graph(
             llm=llm,
@@ -96,10 +106,15 @@ class RCAAgent:
             max_commits=max_commits,
             similar_incidents_top_k=similar_incidents_top_k,
             trace_provider=trace_provider,
+            memory_enabled=memory_enabled,
         )
         self._llm = llm
         self._memory = memory
-        self._auto_store_rca = auto_store_rca
+        self._memory_enabled = memory_enabled
+        # When memory is disabled, auto-store is also suppressed: we must not
+        # write a Memory-OFF investigation result into memory, because it would
+        # pollute the historical corpus used by the Memory-ON condition.
+        self._auto_store_rca = auto_store_rca and memory_enabled
         self._memory_writer = RCAMemoryWriter(memory)
 
     def investigate(self, incident: Incident) -> RCAResult:
@@ -124,7 +139,7 @@ class RCAAgent:
             incident.title,
         )
 
-        initial_state: dict = {"incident": incident}
+        initial_state: dict = {"incident": incident, "memory_enabled": self._memory_enabled}
 
         try:
             final_state = self._graph.invoke(initial_state)

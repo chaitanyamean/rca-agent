@@ -367,8 +367,39 @@ def _build_mock_llm(case: EvalCase) -> MockLLMProvider:
 class EvalRunner:
     """Orchestrates evaluation runs against the full dataset."""
 
-    def __init__(self, dataset_path: Path = DATASET_PATH) -> None:
+    def __init__(
+        self,
+        dataset_path: Path = DATASET_PATH,
+        llm_factory=None,
+    ) -> None:
+        """Initialise the evaluation runner.
+
+        Parameters
+        ----------
+        dataset_path:
+            Path to the evaluation dataset JSON.
+        llm_factory:
+            Optional callable that returns an ``LLMProvider``.  When provided,
+            each evaluation case uses the real LLM instead of ``MockLLMProvider``.
+            Signature: ``() -> LLMProvider``.
+            When None (default), ``_build_mock_llm(case)`` is used (deterministic).
+
+            Security note: the factory callable must NEVER expose API key values
+            in its return value or in logging.  Use the ``build_llm_provider``
+            factory from ``rca_agent.agents.llm_factory`` which reads keys from
+            environment variables only.
+
+        Example — inject a real OpenAI provider::
+
+            from rca_agent.agents.llm_factory import build_llm_provider
+            runner = EvalRunner(
+                llm_factory=lambda: build_llm_provider(
+                    provider="openai", model="gpt-4o-mini", wrap_tracked=True
+                )
+            )
+        """
         self._dataset_path = dataset_path
+        self._llm_factory = llm_factory
         self._latency_eval = LatencyEvaluator()
         self._token_eval = TokenUsageEvaluator()
 
@@ -383,7 +414,14 @@ class EvalRunner:
         commits = [_build_commit(s) for s in case.mock_commits]
         memory = _build_memory(case.mock_historical_incidents)
         incident = _build_incident(case.incident_data)
-        llm = _build_mock_llm(case)
+
+        # Use injected real LLM factory if provided; otherwise use deterministic mock
+        if self._llm_factory is not None:
+            llm = self._llm_factory()
+            using_real_llm = True
+        else:
+            llm = _build_mock_llm(case)
+            using_real_llm = False
 
         agent = RCAAgent(
             llm=llm,
@@ -405,7 +443,37 @@ class EvalRunner:
         for evaluator in ALL_EVALUATORS:
             metrics.append(evaluator.evaluate(case, result))
         metrics.append(self._latency_eval.evaluate(case, result, latency_seconds=latency))
-        metrics.append(self._token_eval.evaluate(case, result, call_log=llm.call_log))
+
+        # Token tracking: prefer TrackedLLMProvider if available, else call_log heuristic
+        call_log_for_tokens = None
+        token_summary = None
+        if using_real_llm:
+            from rca_agent.agents.llm_factory import TrackedLLMProvider
+            # Unwrap ResilientLLMProvider to find TrackedLLMProvider
+            inner = getattr(llm, "_inner", llm)
+            if isinstance(inner, TrackedLLMProvider):
+                token_summary = inner.token_summary()
+                # Build synthetic call_log for TokenUsageEvaluator from real counts
+                # We pass None and let the evaluator pick up from token_summary below
+        elif hasattr(llm, "call_log"):
+            call_log_for_tokens = llm.call_log
+
+        tok_metric = self._token_eval.evaluate(
+            case, result,
+            call_log=call_log_for_tokens,
+            token_summary=token_summary,
+        )
+        metrics.append(tok_metric)
+
+        # Record whether real LLM was used (stored in metric details)
+        llm_mode = f"real:{llm.model_name}" if using_real_llm else "mock"
+        metrics.append(EvalMetric(
+            name="llm_mode",
+            score=1.0 if using_real_llm else 0.0,
+            passed=None,
+            details=f"LLM mode: {llm_mode}",
+            raw_value=llm_mode,
+        ))
 
         # Overall pass: all non-informational evaluators must pass
         pass_required = [m for m in metrics if m.passed is not None]

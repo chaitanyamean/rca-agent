@@ -195,6 +195,72 @@ class Settings(BaseSettings):
     )
 
     # ------------------------------------------------------------------
+    # Phase 3 — Memory experiment control
+    # ------------------------------------------------------------------
+    memory_enabled: bool = Field(
+        default=True,
+        description=(
+            "Master toggle for historical incident memory retrieval. "
+            "When False, Node 5 (search_historical) is replaced with a no-op: "
+            "no historical incidents are retrieved, and completed RCAs are NOT "
+            "written back to long-term memory. "
+            "Set via MEMORY_ENABLED environment variable. "
+            "Use False for the Memory-OFF condition in the Phase 3 experiment."
+        ),
+    )
+    memory_similarity_threshold: float = Field(
+        default=0.15,
+        description=(
+            "Minimum cosine similarity required for a historical incident to be "
+            "considered relevant. Incidents below this threshold are not surfaced. "
+            "This governs the Memory ON condition quality gate. "
+            "Set via MEMORY_SIMILARITY_THRESHOLD environment variable."
+        ),
+    )
+    memory_relevance_top_k: int = Field(
+        default=5,
+        description=(
+            "Maximum number of similar historical incidents to retrieve per investigation. "
+            "Set via MEMORY_RELEVANCE_TOP_K environment variable."
+        ),
+    )
+
+    # ------------------------------------------------------------------
+    # Autonomous Jaeger Monitor
+    # ------------------------------------------------------------------
+    rca_poll_interval_seconds: float = Field(
+        default=5.0,
+        description=(
+            "How often (in seconds) the autonomous monitor polls Jaeger for new error traces. "
+            "Set via RCA_POLL_INTERVAL_SECONDS environment variable."
+        ),
+    )
+    rca_lookback_seconds: int = Field(
+        default=30,
+        description=(
+            "Time window (in seconds) looked back on each poll. "
+            "Traces with a root span starting within this window are inspected. "
+            "Set via RCA_LOOKBACK_SECONDS environment variable."
+        ),
+    )
+    rca_monitor_services: str = Field(
+        default="",
+        description=(
+            "Comma-separated list of service names to monitor. "
+            "Empty string means monitor ALL services visible in Jaeger. "
+            "Set via RCA_MONITOR_SERVICES environment variable. "
+            "Example: 'rke-backend,payments-api'"
+        ),
+    )
+    rca_monitor_environment: str = Field(
+        default="production",
+        description=(
+            "Environment label recorded on auto-generated incidents. "
+            "Set via RCA_MONITOR_ENVIRONMENT environment variable."
+        ),
+    )
+
+    # ------------------------------------------------------------------
     # Prompt versioning
     # ------------------------------------------------------------------
     prompt_version: str = Field(
@@ -231,6 +297,27 @@ class Settings(BaseSettings):
             "start/end time is provided to the trace provider."
         ),
     )
+    trace_slow_threshold_ms: float = Field(
+        default=1_000.0,
+        description=(
+            "Span duration threshold (milliseconds) above which a span is "
+            "considered 'slow' for evidence scoring and anomaly detection. "
+            "Set via RCA_TRACE_SLOW_THRESHOLD_MS environment variable. "
+            "Default: 1 000 ms (1 second)."
+        ),
+    )
+    trace_provider_type: str = Field(
+        default="auto",
+        description=(
+            "Which trace provider to use. "
+            "'auto' selects JaegerTraceProvider when jaeger_base_url is set, "
+            "otherwise NoOpTraceProvider. "
+            "'jaeger' always uses JaegerTraceProvider (fails if URL not set). "
+            "'none' always uses NoOpTraceProvider (tracing disabled). "
+            "'mock' uses MockTraceProvider (tests only). "
+            "Set via TRACE_PROVIDER_TYPE environment variable."
+        ),
+    )
 
     # ------------------------------------------------------------------
     # Git Provider
@@ -260,6 +347,29 @@ class Settings(BaseSettings):
     log_max_lines: int = Field(
         default=100_000,
         description="Maximum lines read per log file to prevent unbounded memory use.",
+    )
+    log_source: str = Field(
+        default="file",
+        description=(
+            "Where to retrieve application logs from. "
+            "'file' — LocalLogProvider reading NDJSON files from log_dir (default). "
+            "'docker' — DockerLogProvider reading from a named Docker container. "
+            "Set via LOG_SOURCE environment variable."
+        ),
+    )
+    log_docker_container: str = Field(
+        default="rke-backend",
+        description=(
+            "Docker container name used when log_source='docker'. "
+            "Set via LOG_DOCKER_CONTAINER environment variable."
+        ),
+    )
+    log_docker_since_minutes: int = Field(
+        default=60,
+        description=(
+            "How many minutes of container logs to fetch when log_source='docker'. "
+            "Set via LOG_DOCKER_SINCE_MINUTES environment variable."
+        ),
     )
 
 

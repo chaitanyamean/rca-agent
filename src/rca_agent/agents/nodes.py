@@ -46,6 +46,7 @@ from rca_agent.memory.incident_memory import IncidentMemory
 from rca_agent.models.log_entry import LogEntry
 from rca_agent.models.git_models import Commit
 from rca_agent.models.memory_models import SimilarIncident
+from rca_agent.models.observability import EvidenceAvailability, InvestigationEvidenceSummary
 from rca_agent.models.rca_result import (
     CandidateRootCause,
     EvidencePiece,
@@ -104,6 +105,90 @@ def _commit_summary(commits: list[Commit]) -> str:
             f"{c.short_id} [{c.timestamp.isoformat()[:10]}] {c.author}: {c.subject} | files: {files}"
         )
     return "\n".join(lines)
+
+
+def _extract_trace_findings(traces: list[Trace]) -> list[str]:
+    """Convert retrieved Trace objects into human-readable finding strings.
+
+    These strings are placed in the ``trace_findings`` state field and
+    surfaced to the LLM in Node 6 under a ``TRACE ANALYSIS:`` section.
+
+    Design
+    ------
+    * Only meaningful span information is included — no raw IDs or internal
+      Jaeger metadata.
+    * All three error signals are captured: ``status=ERROR``,
+      ``exception`` attribute, and ``http.status_code >= 500``.
+    * Span attributes that are diagnostic (db.system, db.statement,
+      http.route, net.peer.address, error.type, error.message) are included.
+    * No fabrication — only what the span actually contains.
+    * No LLM involvement — this is deterministic text formatting.
+    """
+    if not traces:
+        return []
+
+    findings: list[str] = []
+
+    for trace in traces:
+        root = trace.root_span
+        root_label = (
+            f"[ROOT] {root.service_name}/{root.operation_name} "
+            f"status={root.status.value} duration={root.duration_ms:.0f}ms"
+            if root else f"[TRACE] {trace.trace_id[:16]}"
+        )
+        findings.append(f"Trace {trace.trace_id[:16]}: {root_label}")
+
+        # Emit one line per interesting span (errors, or spans with DB/exception info)
+        for span in trace.spans:
+            parts: list[str] = []
+
+            # Status
+            if span.status.value == "ERROR":
+                parts.append(f"status=ERROR")
+            elif span.is_slow:
+                parts.append(f"status=SLOW({span.duration_ms:.0f}ms)")
+
+            # Exception from span events
+            exc_msg = span.exception_message
+            if exc_msg:
+                parts.append(f"exception={exc_msg[:120]}")
+
+            # Status message
+            if span.status_message:
+                parts.append(f"error_msg={span.status_message[:120]}")
+
+            # Key attributes
+            attrs = span.attributes
+            for key in (
+                "error.type", "error.message",
+                "http.status_code", "http.route", "http.url",
+                "db.system", "db.statement", "db.operation",
+                "net.peer.address", "network.peer.address",
+                "exception.type", "exception.message",
+            ):
+                val = attrs.get(key)
+                if val is not None:
+                    parts.append(f"{key}={str(val)[:80]}")
+
+            if parts:
+                findings.append(
+                    f"  span {span.service_name}/{span.operation_name}: "
+                    + " | ".join(parts)
+                )
+
+        # Exception events on any span
+        for span in trace.spans:
+            for event in span.events:
+                if "exception" in event.name.lower():
+                    etype = event.attributes.get("exception.type", "")
+                    emsg = event.attributes.get("exception.message", "")
+                    if etype or emsg:
+                        findings.append(
+                            f"  exception event on {span.service_name}/{span.operation_name}: "
+                            f"type={etype} message={emsg[:120]}"
+                        )
+
+    return findings
 
 
 # ---------------------------------------------------------------------------
@@ -165,71 +250,293 @@ def make_retrieve_evidence_node(
     max_commits: int = 20,
     trace_provider: TraceProvider | None = None,
 ):
-    """Node 2 — fetch logs, commits, and traces using the extracted search terms."""
+    """Node 2 — fetch logs, commits, and traces; record evidence availability."""
 
     def node(state: dict) -> dict:
         incident = state["incident"]
         terms = state.get("key_search_terms", [])
         keyword = terms[0] if terms else None
 
+        availability = InvestigationEvidenceSummary()
+
         # Fetch logs around the incident window (±1 hour)
         start = incident.start_time - timedelta(hours=1)
         end = (incident.end_time or incident.start_time) + timedelta(hours=1)
 
-        log_result = search_logs(
-            log_provider,
-            service=incident.application if incident.affected_services else None,
-            keyword=keyword,
-            level="ERROR",
-            start_time=start,
-            end_time=end,
-            max_results=max_log_entries,
-        )
+        # ---- Log retrieval ------------------------------------------
+        #
+        # Strategy:
+        # 1. If the incident carries a primary trace_id (set by the autonomous
+        #    monitor), attempt to fetch trace-correlated logs first.
+        # 2. If correlated logs are found, use them as the sole log evidence
+        #    and SKIP the broad time-window search.  This prevents unrelated
+        #    log entries from other concurrent incidents diluting the signal.
+        # 3. If no trace_id is set, or correlated retrieval returns nothing,
+        #    fall back to the existing general time-window search.
+        # ------------------------------------------------------------------
+        primary_trace_id_for_logs: str | None = getattr(incident, "trace_id", None)
+        correlated_log_entries: list = []
 
-        # Also fetch WARN logs
-        warn_result = search_logs(
-            log_provider,
-            keyword=keyword,
-            level="WARN",
-            start_time=start,
-            end_time=end,
-            max_results=20,
-        )
-
-        commits = get_recent_commits(git_provider, limit=max_commits)
-
-        # ---- Trace retrieval (optional) ---------------------------------
-        traces: list[Trace] = []
-        trace_note = "no trace provider configured"
-        if trace_provider is not None:
+        if primary_trace_id_for_logs:
             try:
-                query = TraceSearchQuery(
-                    service=incident.application,
+                corr_result = log_provider.get_logs_by_trace_id(primary_trace_id_for_logs)
+                correlated_log_entries = corr_result.entries
+            except Exception as exc_corr:  # noqa: BLE001
+                logger.debug(
+                    "Node 2: early correlated-log fetch failed trace_id=%s: %s",
+                    primary_trace_id_for_logs, exc_corr,
+                )
+
+        use_correlated_only = bool(primary_trace_id_for_logs and correlated_log_entries)
+
+        try:
+            if use_correlated_only:
+                # Use only the trace-correlated logs — skip the broad search
+                all_log_entries = correlated_log_entries
+                logger.info(
+                    "Log retrieval: trace-correlated logs found: %d. "
+                    "Skipping broad time-window log search because "
+                    "primary trace evidence is available.",
+                    len(all_log_entries),
+                )
+                availability.add(
+                    "logs", EvidenceAvailability.AVAILABLE,
+                    item_count=len(all_log_entries),
+                    detail=(
+                        f"{len(all_log_entries)} trace-correlated log(s) "
+                        f"for trace_id={primary_trace_id_for_logs[:16]}"
+                    ),
+                )
+            else:
+                # No trace_id or no correlated logs — fall back to general search
+                if primary_trace_id_for_logs:
+                    logger.info(
+                        "Log retrieval: no trace-correlated logs found for trace_id=%s. "
+                        "Using general time-window log search.",
+                        primary_trace_id_for_logs,
+                    )
+                log_result = search_logs(
+                    log_provider,
+                    service=incident.application if incident.affected_services else None,
+                    keyword=keyword,
+                    level="ERROR",
                     start_time=start,
                     end_time=end,
-                    limit=20,
+                    max_results=max_log_entries,
                 )
-                trace_result = trace_provider.search_traces(query)
-                traces = trace_result.traces
-                trace_note = (
-                    f"{len(traces)} traces retrieved "
-                    f"({sum(len(t.error_spans) for t in traces)} error spans, "
-                    f"{sum(len(t.slow_spans) for t in traces)} slow spans)"
+                warn_result = search_logs(
+                    log_provider,
+                    keyword=keyword,
+                    level="WARN",
+                    start_time=start,
+                    end_time=end,
+                    max_results=20,
                 )
-                logger.info("Trace retrieval: %s", trace_note)
+                total_logs = log_result.total + warn_result.total
+                all_log_entries = log_result.entries + warn_result.entries
+                if total_logs > 0:
+                    availability.add(
+                        "logs", EvidenceAvailability.AVAILABLE, item_count=total_logs,
+                        detail=f"{log_result.total} ERROR, {warn_result.total} WARN",
+                    )
+                else:
+                    availability.add(
+                        "logs", EvidenceAvailability.AVAILABLE_EMPTY, item_count=0,
+                        detail="provider queried but no matching log entries found",
+                    )
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Node 2 log retrieval failed: %s", exc)
+            all_log_entries = []
+            availability.add("logs", EvidenceAvailability.FAILED, detail=str(exc)[:120])
+
+        # ---- Git retrieval ------------------------------------------
+        if max_commits == 0:
+            commits: list[Commit] = []
+            availability.add("git", EvidenceAvailability.SKIPPED, detail="max_commits=0")
+        else:
+            try:
+                commits = get_recent_commits(git_provider, limit=max_commits)
+                if commits:
+                    availability.add(
+                        "git", EvidenceAvailability.AVAILABLE, item_count=len(commits),
+                        detail=f"{len(commits)} recent commit(s)",
+                    )
+                else:
+                    availability.add(
+                        "git", EvidenceAvailability.AVAILABLE_EMPTY,
+                        detail="repository accessible but no commits found in window",
+                    )
             except Exception as exc:  # noqa: BLE001
-                trace_note = f"trace retrieval failed: {exc}"
-                logger.warning("Node 2 trace retrieval failed: %s", exc)
+                logger.warning("Node 2 git retrieval failed: %s", exc)
+                commits = []
+                availability.add("git", EvidenceAvailability.FAILED, detail=str(exc)[:120])
+
+        # ---- Trace retrieval (optional) -----------------------------
+        traces: list[Trace] = []
+        trace_note = ""
+        if trace_provider is None:
+            trace_note = "no trace provider configured"
+            availability.add("traces", EvidenceAvailability.NOT_CONFIGURED,
+                             detail="trace_provider not set")
+        else:
+            # Check if it's a NoOp (tracing explicitly disabled/unavailable)
+            from rca_agent.providers.noop_trace_provider import NoOpTraceProvider
+            if isinstance(trace_provider, NoOpTraceProvider):
+                trace_note = f"tracing unavailable: {trace_provider.reason}"
+                availability.add("traces", EvidenceAvailability.NOT_CONFIGURED,
+                                 detail=trace_provider.reason)
+            else:
+                try:
+                    # ----------------------------------------------------------
+                    # Step 1: Exact trace — when the incident carries a trace_id
+                    # (set by the autonomous monitor), fetch that trace directly.
+                    # This is the PRIMARY CURRENT EVIDENCE.
+                    # ----------------------------------------------------------
+                    primary_trace_id: str | None = getattr(incident, "trace_id", None)
+                    exact_trace: Trace | None = None
+
+                    if primary_trace_id:
+                        logger.info(
+                            "Trace retrieval: requesting exact trace_id=%s",
+                            primary_trace_id,
+                        )
+                        try:
+                            exact_trace = trace_provider.get_trace(primary_trace_id)
+                        except Exception as exc_exact:  # noqa: BLE001
+                            logger.warning(
+                                "Trace retrieval: exact trace fetch failed "
+                                "trace_id=%s error=%s",
+                                primary_trace_id, exc_exact,
+                            )
+                        if exact_trace is not None:
+                            traces.append(exact_trace)
+                            logger.info(
+                                "Trace retrieval: exact trace found=true "
+                                "trace_id=%s spans=%d error_spans=%d",
+                                primary_trace_id,
+                                len(exact_trace.spans),
+                                len(exact_trace.error_spans),
+                            )
+                            # Correlated logs were already fetched in the log-retrieval
+                            # block above (primary_trace_id_for_logs).  If we did NOT
+                            # use them as the primary log source (use_correlated_only
+                            # was False because they were empty at that point), attempt
+                            # the fetch once more now in case timing changed, and
+                            # prepend them.  When use_correlated_only=True they are
+                            # already the sole log source — no action needed.
+                            if not use_correlated_only:
+                                try:
+                                    correlated = log_provider.get_logs_by_trace_id(
+                                        primary_trace_id
+                                    )
+                                    if correlated.entries:
+                                        all_log_entries = correlated.entries + all_log_entries
+                                        logger.info(
+                                            "Trace retrieval: %d log(s) correlated "
+                                            "to trace_id=%s (late fetch)",
+                                            len(correlated.entries),
+                                            primary_trace_id,
+                                        )
+                                except Exception as exc_log:  # noqa: BLE001
+                                    logger.debug(
+                                        "Trace retrieval: correlated log fetch failed "
+                                        "trace_id=%s: %s",
+                                        primary_trace_id, exc_log,
+                                    )
+                        else:
+                            logger.info(
+                                "Trace retrieval: exact trace found=false "
+                                "trace_id=%s — will fall back to time-window search",
+                                primary_trace_id,
+                            )
+
+                    # ----------------------------------------------------------
+                    # Step 2: Broad time-window search for SECONDARY context.
+                    # Skipped if we already have the exact trace, to avoid
+                    # flooding the agent with unrelated traces.
+                    # When no trace_id is known we fall back to the full search.
+                    # ----------------------------------------------------------
+                    if not traces:
+                        query = TraceSearchQuery(
+                            service=incident.application,
+                            start_time=start,
+                            end_time=end,
+                            limit=20,
+                        )
+                        trace_result = trace_provider.search_traces(query)
+                        secondary_traces = trace_result.traces
+                        # Exclude the exact trace if it somehow appears here too
+                        if primary_trace_id:
+                            secondary_traces = [
+                                t for t in secondary_traces
+                                if t.trace_id != primary_trace_id
+                            ]
+                        traces.extend(secondary_traces)
+
+                    err_spans = sum(len(t.error_spans) for t in traces)
+                    slow_spans = sum(len(t.slow_spans) for t in traces)
+                    exact_label = (
+                        f"primary_trace={primary_trace_id[:16]} " if primary_trace_id else ""
+                    )
+                    trace_note = (
+                        f"{exact_label}"
+                        f"{len(traces)} traces retrieved "
+                        f"({err_spans} error spans, {slow_spans} slow spans)"
+                    )
+                    if traces:
+                        availability.add(
+                            "traces", EvidenceAvailability.AVAILABLE,
+                            item_count=len(traces),
+                            detail=trace_note,
+                        )
+                    else:
+                        availability.add(
+                            "traces", EvidenceAvailability.AVAILABLE_EMPTY,
+                            detail="backend reachable but no traces found in time window",
+                        )
+                    logger.info("Trace retrieval: %s", trace_note)
+                except Exception as exc:  # noqa: BLE001
+                    trace_note = f"trace retrieval failed: {exc}"
+                    logger.warning("Node 2 trace retrieval failed: %s", exc)
+                    availability.add(
+                        "traces", EvidenceAvailability.FAILED, detail=str(exc)[:120]
+                    )
 
         notes = [
-            f"[retrieve] {log_result.total} ERROR logs, {warn_result.total} WARN logs, "
-            f"{len(commits)} commits, {trace_note}."
+            f"[retrieve] logs={len(all_log_entries)}, "
+            f"commits={len(commits)}, "
+            f"traces={len(traces)}"
+            + (f" ({trace_note})" if trace_note else "") + "."
         ]
 
+        # ------------------------------------------------------------------
+        # Build human-readable trace findings from the retrieved spans.
+        # These go into state["trace_findings"] so Node 6 can include them
+        # in the TRACE ANALYSIS section of the LLM prompt.
+        # ------------------------------------------------------------------
+        trace_findings: list[str] = _extract_trace_findings(traces)
+
+        # Emit the "RCA evidence summary" log expected by the acceptance criteria
+        primary_tid_label = getattr(incident, "trace_id", None)
+        corr_log_count = sum(
+            1 for e in all_log_entries
+            if getattr(e, "trace_id", None) == primary_tid_label
+        ) if primary_tid_label else 0
+        logger.info(
+            "RCA evidence summary: primary_trace=%d correlated_logs=%d "
+            "related_spans=%d git_evidence=%d (historical_incidents=see_node9)",
+            len(traces),
+            corr_log_count,
+            sum(len(t.spans) for t in traces),
+            len(commits),
+        )
+
         return {
-            "raw_logs": log_result.entries + warn_result.entries,
+            "raw_logs": all_log_entries,
             "raw_commits": commits,
             "raw_traces": traces,
+            "trace_findings": trace_findings,
+            "evidence_availability": availability,
             "investigation_notes": notes,
         }
 
@@ -412,6 +719,41 @@ def make_search_historical_node(llm: LLMProvider, memory: IncidentMemory, top_k:
     return node
 
 
+def make_memory_disabled_node():
+    """Node 5 replacement — used when ``memory_enabled=False`` (Phase 3 Memory-OFF condition).
+
+    This node produces the same state keys as ``make_search_historical_node``
+    but performs **zero** memory operations.  It records in ``historical_findings``
+    and ``investigation_notes`` that memory retrieval was intentionally disabled,
+    so the fact is auditable in the final RCA report.
+
+    Design invariants
+    -----------------
+    * Does not import or call ``IncidentMemory``.
+    * Does not call the LLM.
+    * Does not write any historical evidence.
+    * Does not read the vector or graph stores.
+    * The ``similar_incidents`` state field is set to ``[]``.
+    * The ``historical_findings`` entry explicitly names the disabled status.
+
+    These guarantees are tested in ``tests/test_phase3_memory_experiment.py``.
+    """
+
+    def node(state: dict) -> dict:  # noqa: ARG001
+        return {
+            "similar_incidents": [],
+            "historical_findings": [
+                "Historical incident memory retrieval is DISABLED (memory_enabled=False). "
+                "This investigation uses current evidence only."
+            ],
+            "investigation_notes": [
+                "[search_historical] MEMORY OFF — historical retrieval skipped by experiment config.",
+            ],
+        }
+
+    return node
+
+
 def make_correlate_evidence_node(llm: LLMProvider):
     """Node 6 — synthesise all evidence into a coherent picture.
 
@@ -426,26 +768,44 @@ def make_correlate_evidence_node(llm: LLMProvider):
         git_findings = state.get("git_findings", [])
         historical_findings = state.get("historical_findings", [])
         error_patterns = state.get("error_patterns", [])
+        trace_findings = state.get("trace_findings", [])
         raw_logs = state.get("raw_logs", [])
         raw_commits = state.get("raw_commits", [])
         similar_incidents = state.get("similar_incidents", [])
         candidate_claims: list[str] = []  # not yet generated — empty at this stage
 
-        all_findings = (
+        # Build the section list — TRACE ANALYSIS first when present so the LLM
+        # sees the primary current evidence before secondary findings
+        all_findings: list[str] = []
+        if trace_findings:
+            all_findings += ["CURRENT TRACE EVIDENCE:"] + trace_findings
+        all_findings += (
             ["LOG ANALYSIS:"] + log_findings +
             ["GIT ANALYSIS:"] + git_findings +
-            ["HISTORICAL INCIDENTS:"] + historical_findings +
+            ["HISTORICAL INCIDENTS (for context only — not current FACT):"] + historical_findings +
             ["ERROR PATTERNS:"] + error_patterns
         )
         findings_text = "\n".join(f"  {f}" for f in all_findings if f)
 
+        # Build system instruction — include trace-evidence priority guidance when
+        # a primary trace is present
+        has_trace = bool(trace_findings)
+        system_instruction = (
+            "You are an expert SRE correlating evidence for a root cause analysis. "
+            "Be rigorous: mark claims as FACT only when directly supported by evidence. "
+            "Use INFERENCE for reasoned conclusions. UNKNOWN for gaps. "
+            "Respond with valid JSON only."
+        )
+        if has_trace:
+            system_instruction += (
+                " The CURRENT TRACE EVIDENCE section contains the exact error trace "
+                "that triggered this investigation. Prioritise that evidence. "
+                "HISTORICAL INCIDENTS are provided as supporting context only — "
+                "never attribute the current root cause solely to a historical incident."
+            )
+
         messages = [
-            {"role": "system", "content": (
-                "You are an expert SRE correlating evidence for a root cause analysis. "
-                "Be rigorous: mark claims as FACT only when directly supported by evidence. "
-                "Use INFERENCE for reasoned conclusions. UNKNOWN for gaps. "
-                "Respond with valid JSON only."
-            )},
+            {"role": "system", "content": system_instruction},
             {"role": "user", "content": (
                 f"Incident: {incident.title}\n"
                 f"Application: {incident.application}\n\n"
@@ -497,6 +857,8 @@ def make_correlate_evidence_node(llm: LLMProvider):
                 f"[correlate] Structured evidence: {len(correlation_result.evidence)} pieces, "
                 f"confidence={correlation_result.overall_confidence:.2f}, "
                 f"conflicts={len(correlation_result.conflicts)}",
+                f"[correlate] historical_incidents={len(similar_incidents)} "
+                f"trace_findings={len(trace_findings)}",
             ],
         }
 
@@ -705,6 +1067,15 @@ def make_generate_rca_node(llm: LLMProvider):
             unknowns = ["Root cause confidence below threshold — further investigation needed."]
 
         # ------------------------------------------------------------------
+        # Phase 12: Add evidence source provenance to unknowns
+        # ------------------------------------------------------------------
+        availability = state.get("evidence_availability")
+        if availability is not None:
+            provenance_unknowns = availability.to_unknowns()
+            if provenance_unknowns:
+                unknowns = unknowns + provenance_unknowns
+
+        # ------------------------------------------------------------------
         # Phase 7: Final correlator run with known root-cause claims
         # ------------------------------------------------------------------
         claims = [validated_rc.summary] if validated_rc else []
@@ -743,6 +1114,33 @@ def make_generate_rca_node(llm: LLMProvider):
             unknowns=unknowns,
             recommended_next_steps=data.get("recommended_next_steps", []),
             investigation_notes=state.get("investigation_notes", []),
+            # ------------------------------------------------------------------
+            # Phase 3 memory provenance
+            # ------------------------------------------------------------------
+            memory_enabled=state.get("memory_enabled", _is_memory_enabled(state)),
+            retrieved_historical_count=len(similar),
+            historical_context_notes=_build_historical_context_notes(
+                similar=similar,
+                historical_findings=state.get("historical_findings", []),
+                memory_enabled=_is_memory_enabled(state),
+            ),
+        )
+
+        # Final complete evidence summary — now that memory retrieval (Node 5) has run
+        primary_trace_id_final = getattr(incident, "trace_id", None)
+        raw_logs_all = state.get("raw_logs", [])
+        corr_logs = sum(
+            1 for e in raw_logs_all
+            if primary_trace_id_final and getattr(e, "trace_id", None) == primary_trace_id_final
+        )
+        logger.info(
+            "RCA evidence summary: primary_trace=%d correlated_logs=%d "
+            "related_spans=%d git_evidence=%d historical_incidents=%d",
+            len(state.get("raw_traces", [])),
+            corr_logs,
+            sum(len(t.spans) for t in state.get("raw_traces", [])),
+            len(state.get("raw_commits", [])),
+            len(similar),
         )
 
         return {
@@ -755,7 +1153,73 @@ def make_generate_rca_node(llm: LLMProvider):
                 f"[generate_rca] Structured evidence: {len(final_correlation.evidence)} pieces, "
                 f"overall_confidence={final_correlation.overall_confidence:.2f}",
                 final_correlation.format_audit_summary(),
-            ],
+            ] + (
+                [availability.format_provenance()]
+                if (availability := state.get("evidence_availability")) is not None
+                else []
+            ),
         }
 
     return node
+# Phase 3 — Memory provenance helpers (used by make_generate_rca_node)
+# ---------------------------------------------------------------------------
+
+def _is_memory_enabled(state: dict) -> bool:
+    """Return True if the Memory-ON node ran (historical findings not just disabled note)."""
+    historical_findings: list[str] = state.get("historical_findings", [])
+    if not historical_findings:
+        return True  # no findings yet — assume enabled (empty memory)
+    # The disabled node writes this exact sentinel string
+    disabled_sentinel = "Historical incident memory retrieval is DISABLED"
+    return not any(disabled_sentinel in f for f in historical_findings)
+
+
+def _build_historical_context_notes(
+    similar: list[Any],
+    historical_findings: list[str],
+    memory_enabled: bool,
+) -> list[str]:
+    """Build explicit provenance notes for historical memory usage.
+
+    These notes are stored in ``RCAResult.historical_context_notes`` and
+    allow auditors (and the Phase 3 evaluation) to verify exactly what
+    historical evidence the agent saw and how it was used.
+
+    Rules (Phase 3 requirements)
+    ----------------------------
+    * When memory is OFF: a single note records the disabled status.
+    * When memory is ON but no results: a note records the empty search.
+    * When memory is ON with results: one note per retrieved incident,
+      describing what was retrieved and the similarity score.
+    * Historical context is NEVER described as FACT about the current incident.
+    """
+    if not memory_enabled:
+        return [
+            "MEMORY OFF: Historical incident retrieval was disabled for this investigation. "
+            "No historical context was provided to the reasoning process."
+        ]
+
+    if not similar:
+        return [
+            "MEMORY ON: Historical memory was queried but no sufficiently similar "
+            "incidents were found above the relevance threshold."
+        ]
+
+    notes = [
+        f"MEMORY ON: {len(similar)} historical incident(s) retrieved and provided as "
+        "contextual evidence (NOT as FACT about the current incident)."
+    ]
+    for s in similar:
+        notes.append(
+            f"  HISTORICAL CONTEXT [{s.incident_id}] similarity={s.similarity_score:.3f}: "
+            f"{s.title}. "
+            f"Provenance: retrieved via TF-IDF semantic similarity from incident memory. "
+            f"This is historical context only — current evidence must independently confirm "
+            f"any conclusions drawn from this historical incident."
+        )
+    if historical_findings:
+        notes.append(
+            "  LLM-extracted insights from historical incidents: "
+            + "; ".join(f[:120] for f in historical_findings if "DISABLED" not in f)
+        )
+    return notes

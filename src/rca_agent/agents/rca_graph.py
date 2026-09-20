@@ -37,6 +37,7 @@ from rca_agent.agents.nodes import (
     make_generate_candidate_node,
     make_generate_rca_node,
     make_inspect_git_node,
+    make_memory_disabled_node,
     make_retrieve_evidence_node,
     make_search_historical_node,
     make_understand_incident_node,
@@ -57,6 +58,7 @@ def build_rca_graph(
     max_commits: int = 20,
     similar_incidents_top_k: int = 5,
     trace_provider: TraceProvider | None = None,
+    memory_enabled: bool = True,
 ):
     """Construct and compile the RCA investigation LangGraph.
 
@@ -80,6 +82,11 @@ def build_rca_graph(
         Optional ``TraceProvider`` implementation.  When provided, Node 2
         retrieves distributed traces from the backend (e.g. Jaeger) and
         includes them as TRACE evidence in the correlation pipeline.
+    memory_enabled:
+        When True (default), Node 5 actively queries historical incident
+        memory.  When False, Node 5 is replaced with a no-op node that
+        records the disabled status in ``historical_findings`` but never
+        touches the memory layer.  This is the Phase 3 experiment switch.
 
     Returns
     -------
@@ -112,10 +119,14 @@ def build_rca_graph(
         "inspect_git_changes",
         make_inspect_git_node(llm, git_provider),
     )
-    graph.add_node(
-        "search_historical",
-        make_search_historical_node(llm, memory, top_k=similar_incidents_top_k),
-    )
+    # Node 5: conditionally use real memory search or a no-op stub
+    if memory_enabled:
+        search_node = make_search_historical_node(
+            llm, memory, top_k=similar_incidents_top_k
+        )
+    else:
+        search_node = make_memory_disabled_node()
+    graph.add_node("search_historical", search_node)
     graph.add_node(
         "correlate_evidence",
         make_correlate_evidence_node(llm),

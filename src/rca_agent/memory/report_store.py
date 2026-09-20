@@ -60,7 +60,7 @@ class FileReportStore:
     def save(self, report: InvestigationReport) -> Path:
         path = self._dir / f"{report.investigation_id}.json"
         path.write_text(
-            report.model_dump_json(indent=2, default=str),
+            report.model_dump_json(indent=2),
             encoding="utf-8",
         )
         logger.info(

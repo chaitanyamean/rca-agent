@@ -26,6 +26,7 @@ from rca_agent.models.rca_result import (
     RCAStatus,
 )
 from rca_agent.models.trace_models import Trace
+from rca_agent.models.observability import InvestigationEvidenceSummary
 
 
 class InvestigationState(TypedDict, total=False):
@@ -76,6 +77,11 @@ class InvestigationState(TypedDict, total=False):
 
     error_patterns: Annotated[list[str], operator.add]
     """Specific error patterns and exception types found in logs."""
+
+    trace_findings: Annotated[list[str], operator.add]
+    """Human-readable findings extracted from trace/span analysis (Node 2).
+    Each entry describes a span: service, operation, status, exception, and
+    key attributes.  These are surfaced to the LLM in Node 6 as TRACE ANALYSIS."""
 
     # ------------------------------------------------------------------
     # Inspect Git Changes node
@@ -139,6 +145,14 @@ class InvestigationState(TypedDict, total=False):
     """ConflictRecord objects detected by the correlator (Phase 7)."""
 
     # ------------------------------------------------------------------
+    # Phase 12 — Evidence source availability (populated by Node 2)
+    # ------------------------------------------------------------------
+    evidence_availability: InvestigationEvidenceSummary | None
+    """Records which evidence sources were available/failed/not-configured.
+    Populated by make_retrieve_evidence_node; consumed by make_generate_rca_node
+    to write accurate provenance into the final RCA report."""
+
+    # ------------------------------------------------------------------
     # Internal bookkeeping
     # ------------------------------------------------------------------
     investigation_notes: Annotated[list[str], operator.add]
@@ -146,3 +160,11 @@ class InvestigationState(TypedDict, total=False):
 
     errors: Annotated[list[str], operator.add]
     """Non-fatal errors encountered during investigation (e.g. tool failures)."""
+
+    # ------------------------------------------------------------------
+    # Phase 3 — Experiment control (set at graph entry, read-only)
+    # ------------------------------------------------------------------
+    memory_enabled: bool
+    """Whether historical incident memory retrieval is enabled for this run.
+    Set to False for the Memory-OFF experimental condition.
+    Used in generate_rca to populate RCAResult.memory_enabled provenance field."""

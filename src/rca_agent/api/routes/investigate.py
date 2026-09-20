@@ -41,7 +41,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from rca_agent.api.auth import require_api_key
 from rca_agent.api.middleware import limiter
 from rca_agent.config.settings import settings
-from rca_agent.agents.llm_provider import MockLLMProvider, ResilientLLMProvider
+from rca_agent.agents.llm_factory import build_llm_provider
 from rca_agent.agents.rca_agent import RCAAgent
 from rca_agent.memory.graph_provider import InMemoryGraphProvider
 from rca_agent.memory.incident_memory import IncidentMemory
@@ -98,6 +98,20 @@ class _NoOpGitProvider:
 
 def _build_log_provider(application: str):
     """Return a log provider based on settings, or the no-op stub."""
+    source = (settings.log_source or "file").lower().strip()
+
+    if source == "docker":
+        try:
+            from rca_agent.providers.docker_log_provider import DockerLogProvider
+            container = settings.log_docker_container or application
+            return DockerLogProvider(
+                container_name=container,
+                since_minutes=settings.log_docker_since_minutes,
+            )
+        except Exception as exc:
+            logger.warning("Could not build DockerLogProvider: %s — using no-op", exc)
+            return _NoOpLogProvider()
+
     if not settings.log_dir or not Path(settings.log_dir).exists():
         logger.debug("Log directory not configured or missing — using no-op provider")
         return _NoOpLogProvider()
@@ -129,52 +143,59 @@ def _build_git_provider():
 
 
 def _build_trace_provider():
-    """Return a JaegerTraceProvider when Jaeger is configured, or None.
+    """Return the appropriate TraceProvider based on settings.trace_provider_type.
 
-    Returns None when ``settings.jaeger_base_url`` is empty so the
-    investigation continues without trace evidence rather than failing.
+    Behaviour by provider type
+    --------------------------
+    'auto'   — JaegerTraceProvider if jaeger_base_url is set, else NoOpTraceProvider.
+    'jaeger' — JaegerTraceProvider unconditionally (logs a warning if URL missing).
+    'none'   — NoOpTraceProvider (tracing explicitly disabled).
+    'mock'   — MockTraceProvider (tests / local demo only).
+
+    A build failure always falls back to NoOpTraceProvider rather than
+    propagating an exception — the investigation continues without traces.
     """
-    if not settings.jaeger_base_url or not settings.jaeger_base_url.strip():
-        logger.debug("Jaeger base URL not configured — trace provider disabled")
-        return None
-    try:
-        from rca_agent.providers.jaeger_trace_provider import JaegerTraceProvider
-        return JaegerTraceProvider(
-            base_url=settings.jaeger_base_url,
-            timeout_seconds=settings.jaeger_timeout_seconds,
-        )
-    except Exception as exc:
-        logger.warning("Could not build trace provider: %s", exc)
-        return None
+    from rca_agent.providers.noop_trace_provider import NoOpTraceProvider
+
+    ptype = (settings.trace_provider_type or "auto").lower().strip()
+
+    if ptype == "none":
+        logger.debug("Trace provider type='none' — using NoOpTraceProvider")
+        return NoOpTraceProvider(reason="TRACE_PROVIDER_TYPE=none (tracing disabled)")
+
+    if ptype == "mock":
+        logger.debug("Trace provider type='mock' — using MockTraceProvider")
+        from rca_agent.providers.mock_trace_provider import MockTraceProvider
+        return MockTraceProvider()
+
+    if ptype in ("jaeger", "auto"):
+        has_url = bool(settings.jaeger_base_url and settings.jaeger_base_url.strip())
+        if ptype == "auto" and not has_url:
+            logger.debug("Jaeger base URL not configured — using NoOpTraceProvider")
+            return NoOpTraceProvider(reason="jaeger_base_url not set (TRACE_PROVIDER_TYPE=auto)")
+        if ptype == "jaeger" and not has_url:
+            logger.warning(
+                "TRACE_PROVIDER_TYPE=jaeger but JAEGER_BASE_URL is not set — "
+                "falling back to NoOpTraceProvider"
+            )
+            return NoOpTraceProvider(reason="jaeger_base_url missing despite TRACE_PROVIDER_TYPE=jaeger")
+        try:
+            from rca_agent.providers.jaeger_trace_provider import JaegerTraceProvider
+            return JaegerTraceProvider(
+                base_url=settings.jaeger_base_url,
+                timeout_seconds=settings.jaeger_timeout_seconds,
+            )
+        except Exception as exc:
+            logger.warning("Could not build JaegerTraceProvider: %s — using NoOpTraceProvider", exc)
+            return NoOpTraceProvider(reason=f"JaegerTraceProvider init failed: {exc}")
+
+    logger.warning("Unknown TRACE_PROVIDER_TYPE=%r — using NoOpTraceProvider", ptype)
+    return NoOpTraceProvider(reason=f"unknown trace_provider_type={ptype!r}")
 
 
 def _build_llm_provider():
     """Return the configured LLM provider wrapped with resilience."""
-    if settings.llm_provider == "mock":
-        inner = MockLLMProvider()
-    elif settings.llm_provider == "openai":
-        try:
-            from langchain_openai import ChatOpenAI  # type: ignore[import]
-            from rca_agent.agents.llm_provider import LangchainLLMProvider
-            model = ChatOpenAI(
-                model=settings.llm_model,
-                temperature=settings.llm_temperature,
-                max_tokens=settings.llm_max_tokens,
-            )
-            inner = LangchainLLMProvider(model)
-        except ImportError:
-            logger.warning("langchain_openai not installed — falling back to mock LLM")
-            inner = MockLLMProvider()
-    else:
-        logger.warning("Unknown LLM provider %r — using mock", settings.llm_provider)
-        inner = MockLLMProvider()
-
-    return ResilientLLMProvider(
-        inner=inner,
-        timeout_seconds=settings.llm_timeout_seconds,
-        max_retries=settings.llm_max_retries,
-        wait_seconds=settings.llm_retry_wait_seconds,
-    )
+    return build_llm_provider()   # delegates to llm_factory with settings defaults
 
 
 # ---------------------------------------------------------------------------

@@ -20,10 +20,6 @@ Every structured log line emitted by the RKE backend must contain these fields:
 | `service` | string | `"rke-backend"` | Must match `OTEL_SERVICE_NAME` |
 | `message` | string | `"Connection refused"` | Human-readable message |
 
-## Strongly recommended fields
-
-These fields unlock the most powerful correlation capabilities in the RCA Agent:
-
 | Field | Type | Example | Notes |
 |---|---|---|---|
 | `trace_id` | string | `"4bf92f3577b34da6a3ce929d0e0e4736"` | Injected by OTel Java agent via MDC |
@@ -148,3 +144,80 @@ Then set `RKE_LOG_PATH=./rke/logs` in your `.env` file.
 | Database error | `ERROR` | `Unable to acquire JDBC Connection` |
 | Unhandled exception | `ERROR` | `NullPointerException in HealthController` |
 | Startup failure | `ERROR` | `BeanCreationException: Flyway migration failed` |
+
+---
+
+## Distributed trace support
+
+### Trace ↔ log correlation
+
+RKE's OTel Java agent injects `trace_id` and `span_id` into the SLF4J MDC on
+every log call.  This means every log line can be linked to its exact span in
+the distributed trace:
+
+```
+Trace abc123...
+   │
+   ├── Span span001  (POST /api/pay, 5 200 ms, ERROR)
+   │      │
+   │      └── Log trace_id=abc123 span_id=span001
+   │          "HikariPool-1 — Connection is not available after 30 000 ms"
+   │
+   └── Span span002  (SELECT pg_sleep(?), 5 100 ms, ERROR)
+              │
+              └── Log trace_id=abc123 span_id=span002
+                  "PSQLException: connection timeout"
+```
+
+The `TraceLogCorrelator` (`providers/trace_correlator.py`) performs this
+linkage deterministically — the LLM never decides whether two IDs match.
+
+### Jaeger integration
+
+The RCA Agent connects to Jaeger via `JaegerTraceProvider` using the HTTP
+query API on port 16686:
+
+```
+RKE → OTel Java agent → OTLP → otel-collector → Jaeger
+                                                     ↑
+                                          JaegerTraceProvider
+                                          (GET /api/traces/...)
+                                                     ↓
+                                          Trace + Span domain models
+                                                     ↓
+                                          EvidenceCorrelator
+                                          (TRACE evidence → FACT/INFERENCE)
+```
+
+Configure the connection:
+
+```bash
+JAEGER_BASE_URL=http://localhost:16686     # local dev
+JAEGER_BASE_URL=http://jaeger:16686        # Docker Compose
+JAEGER_SERVICE_NAME=rke-backend            # matches OTEL_SERVICE_NAME
+RCA_TRACE_SLOW_THRESHOLD_MS=1000           # spans above this are "slow"
+```
+
+### Evidence epistemic labelling for traces
+
+| Span condition | Evidence label | Rationale |
+|---|---|---|
+| `status == ERROR` | **FACT** (relevance=0.95) | Directly observed failure in the trace backend |
+| `duration_ms ≥ threshold` (no error) | **FACT** (relevance=0.80) | Observed slowness — measurable, not inferred |
+| Normal root span | **INFERENCE** (relevance=0.50) | Establishes request path; no anomaly observed |
+
+Every TRACE evidence piece includes `source_ref = trace_id` so the RCA
+report links back to the exact trace in Jaeger.
+
+### Configurable slow-span threshold
+
+The threshold for classifying a span as "slow" is configurable:
+
+```bash
+RCA_TRACE_SLOW_THRESHOLD_MS=2000   # raise threshold to 2 seconds
+RCA_TRACE_SLOW_THRESHOLD_MS=500    # lower threshold for latency-sensitive services
+```
+
+Default: **1 000 ms** (1 second).  This is read at runtime from
+`settings.trace_slow_threshold_ms` — changing it does not require a restart
+when using environment variables.

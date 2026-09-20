@@ -168,3 +168,29 @@ class RCAResult(BaseModel):
         default_factory=list,
         description="Internal agent reasoning notes (not shown to end users).",
     )
+
+    # ------------------------------------------------------------------
+    # Phase 3 — Memory experiment provenance
+    # ------------------------------------------------------------------
+    memory_enabled: bool = Field(
+        default=True,
+        description=(
+            "Whether historical incident memory retrieval was enabled for this investigation. "
+            "False = Memory-OFF condition; True = Memory-ON condition."
+        ),
+    )
+    retrieved_historical_count: int = Field(
+        default=0,
+        description=(
+            "Number of historical incidents retrieved from memory during this investigation. "
+            "Always 0 when memory_enabled=False."
+        ),
+    )
+    historical_context_notes: list[str] = Field(
+        default_factory=list,
+        description=(
+            "Explicit audit trail of how historical memory influenced this investigation. "
+            "Each entry describes a retrieved historical incident and its provenance. "
+            "When memory_enabled=False this list will contain only the disabled-status note."
+        ),
+    )

@@ -32,6 +32,8 @@ env/
 
 # Secrets — never commit
 .env
+.env.*
+!.env.example
 
 # pytest
 .pytest_cache/

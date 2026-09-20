@@ -1,0 +1,348 @@
+{
+  "run_id": "20260920T105040Z",
+  "timestamp": "2026-09-20T10:51:14.007710+00:00",
+  "llm_provider": "openai",
+  "model": "gpt-4o-mini",
+  "is_real_llm": true,
+  "repeats_per_condition": 1,
+  "memory_conditions_run": "both",
+  "total_runs": 2,
+  "memory_off_runs": 1,
+  "memory_on_runs": 1,
+  "aggregate_memory_off": {
+    "total_runs": 1,
+    "overall_pass_rate": 0.0,
+    "real_llm_runs": 1,
+    "mock_llm_runs": 0,
+    "correctness": {
+      "root_cause_accuracy_avg": 0.8,
+      "root_cause_pass_rate": 1.0
+    },
+    "hallucination": {
+      "hallucination_pass_rate": 1.0,
+      "hallucination_rate": 0.0
+    },
+    "grounding": {
+      "pass_rate": 1.0,
+      "class_distribution": {
+        "CURRENT_FACT_SUPPORTED": 0
+      }
+    },
+    "contamination": {
+      "NONE": 0,
+      "SUSPECTED": 0,
+      "CONFIRMED": 0,
+      "NOT_APPLICABLE": 1
+    },
+    "unknown_handling": {
+      "pass_rate": 0.0
+    },
+    "confidence": {
+      "avg": 0.1,
+      "overconfident": 0
+    },
+    "latency": {
+      "avg_seconds": 17.9238,
+      "max_seconds": 17.9238
+    },
+    "tokens": {
+      "avg_total": 0.0,
+      "total_all_runs": 0,
+      "source": "real_tokens"
+    },
+    "cost": {
+      "avg_per_run_usd": 0.0,
+      "total_usd": 0.0,
+      "source": "real_pricing"
+    },
+    "gt_leakage_detected": 0
+  },
+  "aggregate_memory_on": {
+    "total_runs": 1,
+    "overall_pass_rate": 0.0,
+    "real_llm_runs": 1,
+    "mock_llm_runs": 0,
+    "correctness": {
+      "root_cause_accuracy_avg": 0.4,
+      "root_cause_pass_rate": 0.0
+    },
+    "hallucination": {
+      "hallucination_pass_rate": 1.0,
+      "hallucination_rate": 0.0
+    },
+    "grounding": {
+      "pass_rate": 1.0,
+      "class_distribution": {
+        "BOTH_CURRENT_AND_HISTORICAL": 0
+      }
+    },
+    "contamination": {
+      "NONE": 1,
+      "SUSPECTED": 0,
+      "CONFIRMED": 0,
+      "NOT_APPLICABLE": 0
+    },
+    "unknown_handling": {
+      "pass_rate": 0.0
+    },
+    "confidence": {
+      "avg": 0.1,
+      "overconfident": 0
+    },
+    "latency": {
+      "avg_seconds": 15.2256,
+      "max_seconds": 15.2256
+    },
+    "tokens": {
+      "avg_total": 0.0,
+      "total_all_runs": 0,
+      "source": "real_tokens"
+    },
+    "cost": {
+      "avg_per_run_usd": 0.0,
+      "total_usd": 0.0,
+      "source": "real_pricing"
+    },
+    "gt_leakage_detected": 0
+  },
+  "incident_level_analysis": [
+    {
+      "incident_id": "INC-006",
+      "ground_truth": "HikariCP connection pool exhaustion variant. Similar pattern to INC-001 with different concurrency parameters.",
+      "memory_should_help": true,
+      "memory_could_mislead": false,
+      "memory_off": {
+        "runs": 1,
+        "best_root_cause": "Root cause could not be determined from available evidence.",
+        "avg_confidence": 0.1,
+        "pass_rate": 0.0,
+        "avg_latency_s": 17.9238,
+        "contamination": "N/A"
+      },
+      "memory_on": {
+        "runs": 1,
+        "best_root_cause": "Root cause could not be determined from available evidence.",
+        "avg_confidence": 0.1,
+        "pass_rate": 0.0,
+        "avg_latency_s": 15.2256,
+        "contamination": "NONE",
+        "retrieved_historical": 1
+      }
+    }
+  ],
+  "runs": [
+    {
+      "run_id": "20260920T105040Z-r1-golden-inc-006-memOFF",
+      "case_id": "golden-inc-006",
+      "incident_id": "INC-006",
+      "memory_enabled": false,
+      "llm_provider": "real:gpt-4o-mini",
+      "is_real_llm": true,
+      "timestamp": "2026-09-20T10:50:58.767606+00:00",
+      "latency_seconds": 17.9238,
+      "rca_status": "insufficient_evidence",
+      "confidence": 0.1,
+      "root_cause": "Root cause could not be determined from available evidence.",
+      "root_cause_category": "unknown",
+      "similar_incidents": [],
+      "retrieved_historical_count": 0,
+      "unknowns_count": 4,
+      "unknowns": [
+        "Specific reasons for the prolonged holding of connections",
+        "Potential external factors affecting connection availability",
+        "Any underlying issues in the connection pool configuration",
+        "Traces evidence was not configured for this investigation."
+      ],
+      "historical_context_notes": [
+        "MEMORY OFF: Historical incident retrieval was disabled for this investigation. No historical context was provided to the reasoning process."
+      ],
+      "metrics": [
+        {
+          "name": "root_cause_accuracy",
+          "score": 0.8,
+          "passed": true,
+          "details": "Expected keywords: ['pool', 'exhausted', 'connection', 'hikari', 'timeout']. Overlap: 0.80. Agent summary: 'Root cause could not be determined from available evidence.'",
+          "raw_value": null
+        },
+        {
+          "name": "evidence_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": "Expected: {'LOG'}. Actual: {'LOG'}. Jaccard: 1.00",
+          "raw_value": null
+        },
+        {
+          "name": "historical_retrieval_accuracy",
+          "score": 0.0,
+          "passed": false,
+          "details": "Expected: {'INC-001'}. Retrieved: set(). Recall: 0.00",
+          "raw_value": null
+        },
+        {
+          "name": "hallucination_detection",
+          "score": 1.0,
+          "passed": true,
+          "details": "No hallucination detected.",
+          "raw_value": null
+        },
+        {
+          "name": "confidence_calibration",
+          "score": 0.2,
+          "passed": false,
+          "details": "Expected status=complete, min_confidence=0.50. Actual confidence=0.10.",
+          "raw_value": "0.1"
+        },
+        {
+          "name": "evidence_grounding",
+          "score": 1.0,
+          "passed": true,
+          "details": "Evidence grounding: CURRENT_FACT_SUPPORTED. current_fact=True, historical=False, inference=False.",
+          "raw_value": "CURRENT_FACT_SUPPORTED"
+        },
+        {
+          "name": "historical_contamination",
+          "score": 1.0,
+          "passed": null,
+          "details": "Memory was OFF or no historical incidents retrieved \u2014 contamination N/A.",
+          "raw_value": "NOT_APPLICABLE"
+        },
+        {
+          "name": "unknown_handling",
+          "score": 0.0,
+          "passed": false,
+          "details": "Expected complete. Agent status=insufficient_evidence.",
+          "raw_value": "insufficient_evidence"
+        }
+      ],
+      "token_info": {
+        "source": "real_tokens",
+        "model": "gpt-4o-mini",
+        "calls": 6,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "total_tokens": 0,
+        "estimated_cost_usd": 0.0,
+        "cost_available": true,
+        "fallback_heuristic_used": true
+      },
+      "gt_leakage_detected": false,
+      "overall_passed": false
+    },
+    {
+      "run_id": "20260920T105040Z-r1-golden-inc-006-memON",
+      "case_id": "golden-inc-006",
+      "incident_id": "INC-006",
+      "memory_enabled": true,
+      "llm_provider": "real:gpt-4o-mini",
+      "is_real_llm": true,
+      "timestamp": "2026-09-20T10:51:14.007606+00:00",
+      "latency_seconds": 15.2256,
+      "rca_status": "insufficient_evidence",
+      "confidence": 0.1,
+      "root_cause": "Root cause could not be determined from available evidence.",
+      "root_cause_category": "unknown",
+      "similar_incidents": [
+        "INC-001"
+      ],
+      "retrieved_historical_count": 1,
+      "unknowns_count": 4,
+      "unknowns": [
+        "Specific code paths leading to connection leaks.",
+        "Detailed metrics on connection pool usage over time.",
+        "Impact of external factors on connection management.",
+        "Traces evidence was not configured for this investigation."
+      ],
+      "historical_context_notes": [
+        "MEMORY ON: 1 historical incident(s) retrieved and provided as contextual evidence (NOT as FACT about the current incident).",
+        "  HISTORICAL CONTEXT [INC-001] similarity=0.433: PostgreSQL Connection Pool Exhausted \u2014 All Connections Held. Provenance: retrieved via TF-IDF semantic similarity from incident memory. This is historical context only \u2014 current evidence must independently confirm any conclusions drawn from this historical incident.",
+        "  LLM-extracted insights from historical incidents: Monitor connection pool metrics to identify saturation points before they lead to exhaustion.; Implement connection timeout settings to prevent long-held connections from blocking the pool.; Consider increasing the maximum size of the connection pool based on historical usage patterns.; Review application code for potential connection leaks where connections are not being released back to the pool.; Utilize connection pool monitoring tools to gain insights into connection usage and identify problematic queries or tran"
+      ],
+      "metrics": [
+        {
+          "name": "root_cause_accuracy",
+          "score": 0.4,
+          "passed": false,
+          "details": "Expected keywords: ['pool', 'exhausted', 'connection', 'hikari', 'timeout']. Overlap: 0.40. Agent summary: 'Root cause could not be determined from available evidence.'",
+          "raw_value": null
+        },
+        {
+          "name": "evidence_accuracy",
+          "score": 0.5,
+          "passed": true,
+          "details": "Expected: {'LOG'}. Actual: {'INCIDENT', 'LOG'}. Jaccard: 0.50",
+          "raw_value": null
+        },
+        {
+          "name": "historical_retrieval_accuracy",
+          "score": 1.0,
+          "passed": true,
+          "details": "Expected: {'INC-001'}. Retrieved: {'INC-001'}. Recall: 1.00",
+          "raw_value": null
+        },
+        {
+          "name": "hallucination_detection",
+          "score": 1.0,
+          "passed": true,
+          "details": "No hallucination detected.",
+          "raw_value": null
+        },
+        {
+          "name": "confidence_calibration",
+          "score": 0.2,
+          "passed": false,
+          "details": "Expected status=complete, min_confidence=0.50. Actual confidence=0.10.",
+          "raw_value": "0.1"
+        },
+        {
+          "name": "evidence_grounding",
+          "score": 0.9,
+          "passed": true,
+          "details": "Evidence grounding: BOTH_CURRENT_AND_HISTORICAL. current_fact=True, historical=True, inference=False.",
+          "raw_value": "BOTH_CURRENT_AND_HISTORICAL"
+        },
+        {
+          "name": "historical_contamination",
+          "score": 1.0,
+          "passed": true,
+          "details": "No contamination detected. Root cause has 3/5 expected keyword matches. Historical incidents retrieved: ['INC-001'].",
+          "raw_value": "NONE"
+        },
+        {
+          "name": "unknown_handling",
+          "score": 0.0,
+          "passed": false,
+          "details": "Expected complete. Agent status=insufficient_evidence.",
+          "raw_value": "insufficient_evidence"
+        }
+      ],
+      "token_info": {
+        "source": "real_tokens",
+        "model": "gpt-4o-mini",
+        "calls": 7,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "total_tokens": 0,
+        "estimated_cost_usd": 0.0,
+        "cost_available": true,
+        "fallback_heuristic_used": true
+      },
+      "gt_leakage_detected": false,
+      "overall_passed": false
+    }
+  ],
+  "control_variables": {
+    "log_provider": "synthetic (golden dataset mock logs)",
+    "git_provider": "synthetic (golden dataset mock commits)",
+    "trace_provider": "none",
+    "similarity_threshold": 0.15,
+    "ground_truth_isolation_verified": true
+  },
+  "experimental_variable": "memory_enabled (False=OFF, True=ON)",
+  "known_limitations": [
+    "Real LLM used: openai/gpt-4o-mini",
+    "Synthetic log/git evidence \u2014 not real RKE telemetry",
+    "TF-IDF similarity is keyword-based, not semantic",
+    "Hallucination detection is structural, not semantic",
+    "Historical contamination detection based on keyword overlap"
+  ]
+}

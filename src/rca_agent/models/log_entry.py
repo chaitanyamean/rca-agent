@@ -87,10 +87,17 @@ class LogEntry(BaseModel):
         # Compute a stable ID from the raw bytes
         entry_id = hashlib.sha256(raw.encode()).hexdigest()
 
+        # Normalize alternative timestamp field names before validation.
+        # RKE / Logstash / ECS use "@timestamp"; the model expects "timestamp".
+        if "@timestamp" in data and "timestamp" not in data:
+            data = dict(data)  # don't mutate the original
+            data["timestamp"] = data.pop("@timestamp")
+
         # Separate known fields from extra
         known = {
             "id", "timestamp", "service", "level", "message",
             "traceId", "trace_id", "endpoint", "method", "status", "exception",
+            "@timestamp", "@version",
         }
         extra = {k: v for k, v in data.items() if k not in known}
 

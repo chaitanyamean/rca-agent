@@ -349,11 +349,42 @@ class LatencyEvaluator:
 # ---------------------------------------------------------------------------
 
 class TokenUsageEvaluator:
-    """Estimates LLM token usage from call log character count. Informational only."""
-    name = "token_usage"
-    CHARS_PER_TOKEN = 4  # rough heuristic
+    """Estimates LLM token usage from call log character count. Informational only.
 
-    def evaluate(self, case: EvalCase, result: RCAResult, call_log: list | None = None) -> EvalMetric:
+    When a ``token_summary`` dict is provided (from ``TrackedLLMProvider``),
+    the real token counts are used directly.  Otherwise falls back to the
+    ``call_log`` character-count heuristic (chars / 4).
+    """
+    name = "token_usage"
+    CHARS_PER_TOKEN = 4  # rough heuristic for fallback
+
+    def evaluate(
+        self,
+        case: EvalCase,
+        result: RCAResult,
+        call_log: list | None = None,
+        token_summary: dict | None = None,
+    ) -> EvalMetric:
+        # Prefer real token counts from TrackedLLMProvider
+        if token_summary and not token_summary.get("fallback_heuristic_used", True):
+            total_tokens = token_summary.get("total_tokens", 0)
+            input_tokens = token_summary.get("input_tokens", 0)
+            output_tokens = token_summary.get("output_tokens", 0)
+            cost = token_summary.get("estimated_cost_usd")
+            model = token_summary.get("model", "unknown")
+            cost_str = f"${cost:.6f}" if cost is not None else "N/A"
+            return EvalMetric(
+                name=self.name,
+                score=float(total_tokens),
+                passed=None,
+                details=(
+                    f"Real tokens: {input_tokens} input + {output_tokens} output = {total_tokens} total "
+                    f"({model}). Estimated cost: {cost_str}."
+                ),
+                raw_value=total_tokens,
+            )
+
+        # Fallback: character-count heuristic
         total_chars = 0
         if call_log:
             for messages in call_log:
@@ -502,3 +533,254 @@ class MemoryComparisonMetrics:
         )
 
         return "\n".join(lines)
+
+
+# ---------------------------------------------------------------------------
+# Phase 4 Evaluator 8 — Evidence Grounding
+# ---------------------------------------------------------------------------
+
+class EvidenceGroundingEvaluator:
+    """Classifies whether the RCA root cause is grounded in current evidence.
+
+    Returns one of five grounding classes as a structured EvalMetric.
+    Passes when the RCA root cause is grounded in at least CURRENT_INFERENCE
+    (i.e. not solely in historical context or unsupported).
+
+    Grounding classes
+    -----------------
+    CURRENT_FACT_SUPPORTED    — root cause backed by non-historical FACT evidence
+    BOTH_CURRENT_AND_HISTORICAL — backed by current FACT + historical context
+    CURRENT_INFERENCE          — backed by INFERENCE from current evidence
+    HISTORICAL_CONTEXT_ONLY    — only historical incidents cited
+    UNSUPPORTED                — no evidence backs the root cause
+    """
+    name = "evidence_grounding"
+    PASS_CLASSES = frozenset({
+        "CURRENT_FACT_SUPPORTED",
+        "BOTH_CURRENT_AND_HISTORICAL",
+        "CURRENT_INFERENCE",
+    })
+
+    def evaluate(self, case: EvalCase, result: RCAResult) -> EvalMetric:
+        if not result.root_cause:
+            # No root cause — grounding is moot for INSUFFICIENT_EVIDENCE
+            grounding = "UNSUPPORTED"
+            score = 0.0
+            passed = case.expected_status == "insufficient_evidence"
+            return EvalMetric(
+                name=self.name, score=score, passed=passed,
+                details=f"No root cause produced. Grounding: {grounding}.",
+                raw_value=grounding,
+            )
+
+        has_current_fact = any(
+            e.statement_type == EvidenceStatement.FACT
+            and e.source_type not in ("historical_incident",)
+            for e in result.evidence
+        ) or any(
+            hasattr(e, "statement_type")
+            and e.statement_type == EvidenceStatement.FACT
+            and not getattr(e, "is_historical", False)
+            for e in result.structured_evidence
+        )
+        has_historical = any(
+            e.source_type == "historical_incident"
+            for e in result.evidence
+        ) or any(
+            getattr(e, "is_historical", False)
+            for e in result.structured_evidence
+        )
+        has_inference = any(
+            e.statement_type == EvidenceStatement.INFERENCE
+            for e in result.evidence
+        )
+
+        if has_current_fact and has_historical:
+            grounding = "BOTH_CURRENT_AND_HISTORICAL"
+            score = 0.9
+        elif has_current_fact:
+            grounding = "CURRENT_FACT_SUPPORTED"
+            score = 1.0
+        elif has_historical and not has_current_fact and not has_inference:
+            grounding = "HISTORICAL_CONTEXT_ONLY"
+            score = 0.3
+        elif has_inference:
+            grounding = "CURRENT_INFERENCE"
+            score = 0.7
+        else:
+            grounding = "UNSUPPORTED"
+            score = 0.0
+
+        passed = grounding in self.PASS_CLASSES
+        return EvalMetric(
+            name=self.name, score=score, passed=passed,
+            details=(
+                f"Evidence grounding: {grounding}. "
+                f"current_fact={has_current_fact}, historical={has_historical}, "
+                f"inference={has_inference}."
+            ),
+            raw_value=grounding,
+        )
+
+
+# ---------------------------------------------------------------------------
+# Phase 4 Evaluator 9 — Historical Contamination
+# ---------------------------------------------------------------------------
+
+class HistoricalContaminationEvaluator:
+    """Detects whether historical memory caused incorrect attribution.
+
+    Contamination is suspected when:
+    1. Memory was enabled (memory_enabled=True on result OR similar_incidents non-empty).
+    2. The root cause is INCORRECT (zero keyword overlap with expected).
+    3. Historical incident IDs appear in the root cause or summary text.
+
+    Contamination is confirmed when:
+    - Conditions above hold AND the root cause mentions specific entities
+      (service names, error types) that match a historical incident but NOT
+      the current incident's expected keywords.
+
+    Returns
+    -------
+    EvalMetric with:
+    - score=1.0 → no contamination
+    - score=0.0 → confirmed contamination
+    - score=0.5 → suspected (not confirmed)
+    - passed=True → no contamination (good)
+    - passed=False → contamination detected (bad)
+    - passed=None → memory was OFF, evaluation not applicable
+    """
+    name = "historical_contamination"
+
+    def evaluate(self, case: EvalCase, result: RCAResult) -> EvalMetric:
+        # If memory was disabled or no historical incidents were retrieved, N/A
+        if not result.memory_enabled or result.retrieved_historical_count == 0:
+            return EvalMetric(
+                name=self.name, score=1.0, passed=None,
+                details="Memory was OFF or no historical incidents retrieved — contamination N/A.",
+                raw_value="NOT_APPLICABLE",
+            )
+
+        if not result.root_cause:
+            return EvalMetric(
+                name=self.name, score=1.0, passed=None,
+                details="No root cause produced — contamination N/A.",
+                raw_value="NOT_APPLICABLE",
+            )
+
+        # Check root cause correctness (without self-grading)
+        rc_text = (result.root_cause.summary + " " + result.summary).lower()
+        expected_kws = [kw.lower() for kw in case.expected_root_cause_keywords]
+        keyword_hits = sum(1 for kw in expected_kws if kw in rc_text)
+        is_incorrect = keyword_hits == 0 and bool(expected_kws)
+
+        # Check whether historical incident IDs appear in root cause text
+        hist_ids_in_rc = [
+            inc_id for inc_id in result.similar_incidents
+            if inc_id.lower() in rc_text
+        ]
+
+        # Check whether historical incident titles/descriptions appear in RC
+        hist_titles_in_rc: list[str] = []
+        for note in result.historical_context_notes:
+            # Extract historical incident IDs mentioned in notes
+            import re
+            found = re.findall(r"\[([A-Z]+-\d+)\]", note)
+            for fid in found:
+                if fid in result.similar_incidents and fid.lower() in rc_text:
+                    hist_titles_in_rc.append(fid)
+
+        if is_incorrect and (hist_ids_in_rc or hist_titles_in_rc):
+            classification = "CONFIRMED"
+            score = 0.0
+            passed = False
+            detail = (
+                f"CONFIRMED contamination: root cause is INCORRECT (0/{len(expected_kws)} keywords) "
+                f"and historical incident IDs appear in root cause text: "
+                f"{hist_ids_in_rc + hist_titles_in_rc}."
+            )
+        elif is_incorrect and result.similar_incidents:
+            classification = "SUSPECTED"
+            score = 0.5
+            passed = False
+            detail = (
+                f"SUSPECTED contamination: root cause is INCORRECT and "
+                f"{len(result.similar_incidents)} historical incident(s) were retrieved. "
+                f"Historical IDs: {result.similar_incidents}."
+            )
+        else:
+            classification = "NONE"
+            score = 1.0
+            passed = True
+            detail = (
+                f"No contamination detected. Root cause has {keyword_hits}/{len(expected_kws)} "
+                f"expected keyword matches. Historical incidents retrieved: {result.similar_incidents}."
+            )
+
+        return EvalMetric(
+            name=self.name, score=score, passed=passed,
+            details=detail, raw_value=classification,
+        )
+
+
+# ---------------------------------------------------------------------------
+# Phase 4 Evaluator 10 — UNKNOWN Handling
+# ---------------------------------------------------------------------------
+
+class UnknownHandlingEvaluator:
+    """Checks whether the agent appropriately uses UNKNOWN when evidence is insufficient.
+
+    For cases expected to have ``insufficient_evidence`` status:
+    - PASS if ``result.unknowns`` is non-empty AND confidence < 0.5
+
+    For cases expected to have ``complete`` or ``partial`` status:
+    - PASS if the agent does NOT produce status=INSUFFICIENT_EVIDENCE
+      (i.e. it found something useful).
+    """
+    name = "unknown_handling"
+
+    def evaluate(self, case: EvalCase, result: RCAResult) -> EvalMetric:
+        expected = case.expected_status
+
+        if expected == "insufficient_evidence":
+            # Agent should say UNKNOWN / produce unknowns
+            has_unknowns = bool(result.unknowns)
+            low_confidence = result.confidence < 0.5
+            passed = has_unknowns and low_confidence
+            score = 1.0 if passed else (0.5 if has_unknowns or low_confidence else 0.0)
+            return EvalMetric(
+                name=self.name, score=score, passed=passed,
+                details=(
+                    f"Expected insufficient_evidence. "
+                    f"Agent unknowns={len(result.unknowns)}, confidence={result.confidence:.2f}."
+                ),
+                raw_value=result.status.value,
+            )
+
+        # Complete or partial: agent should not punt to INSUFFICIENT_EVIDENCE
+        produced_insufficient = result.status == RCAStatus.INSUFFICIENT_EVIDENCE
+        passed = not produced_insufficient
+        score = 0.0 if produced_insufficient else 1.0
+        return EvalMetric(
+            name=self.name, score=score, passed=passed,
+            details=(
+                f"Expected {expected}. Agent status={result.status.value}."
+            ),
+            raw_value=result.status.value,
+        )
+
+
+# ---------------------------------------------------------------------------
+# Phase 4 — Extended ALL_EVALUATORS (includes Phase 4 evaluators)
+# ---------------------------------------------------------------------------
+
+ALL_EVALUATORS_PHASE4 = [
+    RootCauseEvaluator(),
+    EvidenceAttributionEvaluator(),
+    HistoricalRetrievalEvaluator(),
+    HallucinationEvaluator(),
+    ConfidenceEvaluator(),
+    EvidenceGroundingEvaluator(),
+    HistoricalContaminationEvaluator(),
+    UnknownHandlingEvaluator(),
+]

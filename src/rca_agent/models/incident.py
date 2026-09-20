@@ -202,6 +202,16 @@ class Incident(BaseModel):
         description="Deployment IDs or tags related to this incident.",
     )
 
+    # Primary trace correlation
+    trace_id: str | None = Field(
+        default=None,
+        description=(
+            "Distributed trace ID that triggered or is most directly associated "
+            "with this incident.  When set, the RCA workflow fetches this exact "
+            "trace as primary evidence before performing any broader search."
+        ),
+    )
+
     # Audit timestamps
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),

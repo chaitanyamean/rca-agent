@@ -355,6 +355,7 @@ class EvidenceCorrelator:
         --------
         * Error spans   → EvidenceStatement.FACT, high relevance (0.95)
         * Slow spans    → EvidenceStatement.FACT, medium-high relevance (0.8)
+          (threshold from ``settings.trace_slow_threshold_ms``, default 1 000 ms)
         * Normal spans  → EvidenceStatement.INFERENCE, medium relevance (0.5)
           (they establish the call path but don't directly indicate a problem)
         * If a trace has both error and slow spans, only the most informative
@@ -367,6 +368,13 @@ class EvidenceCorrelator:
         if not traces:
             audit.append("[traces] No traces provided → 0 evidence pieces.")
             return []
+
+        # Read the configured slow threshold once for the whole call
+        try:
+            from rca_agent.config.settings import settings as _s
+            slow_threshold_ms = _s.trace_slow_threshold_ms
+        except Exception:  # noqa: BLE001
+            slow_threshold_ms = 1_000.0
 
         result: list[Evidence] = []
 
@@ -408,7 +416,7 @@ class EvidenceCorrelator:
                 description = (
                     f"Span '{span.operation_name}' in service '{span.service_name}' "
                     f"was slow: {span.duration_ms:.0f} ms "
-                    f"(threshold: 1 000 ms)."
+                    f"(threshold: {slow_threshold_ms:,.0f} ms)."
                 )
                 db_system = span.attributes.get("db.system", "")
                 if db_system:
@@ -454,7 +462,8 @@ class EvidenceCorrelator:
                 ))
 
         audit.append(
-            f"[traces] Converted {len(traces)} trace(s) → {len(result)} evidence pieces."
+            f"[traces] Converted {len(traces)} trace(s) → {len(result)} evidence pieces "
+            f"(slow_threshold={slow_threshold_ms:,.0f} ms)."
         )
         return result
 

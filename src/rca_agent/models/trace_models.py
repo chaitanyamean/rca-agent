@@ -145,12 +145,20 @@ class Span(BaseModel):
 
     @property
     def is_slow(self) -> bool:
-        """True if the span duration exceeds 1 000 ms (1 second).
+        """True if the span duration exceeds the configured slow-span threshold.
 
-        This threshold matches typical database statement timeout warnings
-        and is conservative enough to avoid false positives on normal spans.
+        The threshold is read from ``settings.trace_slow_threshold_ms`` at
+        import time so it can be overridden via ``RCA_TRACE_SLOW_THRESHOLD_MS``
+        without restarting Python.
+
+        Defaults to 1 000 ms if settings cannot be loaded.
         """
-        return self.duration_ms >= 1_000.0
+        try:
+            from rca_agent.config.settings import settings as _s
+            threshold = _s.trace_slow_threshold_ms
+        except Exception:  # noqa: BLE001
+            threshold = 1_000.0
+        return self.duration_ms >= threshold
 
     @property
     def exception_message(self) -> str | None:
