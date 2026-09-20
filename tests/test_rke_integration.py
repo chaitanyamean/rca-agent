@@ -201,7 +201,16 @@ class TestIncidentSimulator:
             assert inc is not None
 
     def test_list_returns_5_incidents(self) -> None:
-        assert len(list_rke_incidents()) == 5
+        assert len(list_rke_incidents()) >= 5  # 5 original + POOL_EXHAUSTION_V2
+
+    def test_pool_exhaustion_v2_registered(self) -> None:
+        inc = get_rke_incident("POOL_EXHAUSTION_V2")
+        assert inc.incident.incident_id == "rke-inc-006"
+        assert inc.fixture_log_path.name == "rke_pool_exhaustion_v2.jsonl"
+
+    def test_pool_exhaustion_v2_fixture_exists(self) -> None:
+        inc = get_rke_incident("POOL_EXHAUSTION_V2")
+        assert inc.fixture_log_path.exists()
 
     def test_get_by_string(self) -> None:
         inc = get_rke_incident("POSTGRES_FAILURE")

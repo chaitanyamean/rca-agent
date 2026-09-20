@@ -55,6 +55,7 @@ class RKEIncidentType(str, Enum):
     BACKEND_HTTP_500 = "BACKEND_HTTP_500"
     SLOW_API = "SLOW_API"
     CONFIG_REGRESSION = "CONFIG_REGRESSION"
+    POOL_EXHAUSTION_V2 = "POOL_EXHAUSTION_V2"
 
 
 @dataclass(frozen=True)
@@ -281,6 +282,77 @@ def _make_config_regression() -> RKEControlledIncident:
     )
 
 
+def _make_pool_exhaustion_v2() -> RKEControlledIncident:
+    """INC-006 — historical similar incident (pool exhaustion variant).
+
+    Deliberately different from POSTGRES_TIMEOUT (INC-001/rke-ctrl-002):
+    * Different timestamp: 2026-10-15 (a month later)
+    * Different trace IDs: f7a3c91e... series
+    * Different endpoint: /api/sales/cash instead of /api/health
+    * Different pool timeout: 2500ms instead of 30000ms
+    * Different pool size: maximumPoolSize=2 (smaller, more aggressive)
+    * Different concurrent holder count: 3 holders (vs 4 in INC-001)
+    * Same underlying failure mechanism: HikariCP pool exhaustion
+    """
+    _INC006_TIME = datetime(2026, 10, 15, 14, 10, 0, tzinfo=timezone.utc)
+    return RKEControlledIncident(
+        incident_type=RKEIncidentType.POOL_EXHAUSTION_V2,
+        incident=Incident(
+            incident_id="rke-inc-006",
+            application="rke-backend",
+            environment="local-docker",
+            title="RKE backend: HikariCP connection pool exhausted — POST /api/sales/cash returning 500",
+            description=(
+                "The rke-backend is returning HTTP 500 on POST /api/sales/cash and GET /api/farmers. "
+                "HikariCP pool (maximumPoolSize=2) is fully saturated by 3 concurrent requests. "
+                "Connection acquisition timing out after 2500ms. "
+                "A possible connection leak is holding connections open for 4+ seconds. "
+                "Triggered at 2026-10-15T14:10:05Z — one month after a similar pool event."
+            ),
+            severity=Severity.HIGH,
+            status=IncidentStatus.OPEN,
+            start_time=_INC006_TIME,
+            affected_services=["rke-backend"],
+            symptoms=[
+                IncidentSymptom(
+                    description="POST /api/sales/cash returning HTTP 500 — cannot create sales",
+                    observed_at=_INC006_TIME,
+                    service="rke-backend",
+                    source="application logs",
+                ),
+                IncidentSymptom(
+                    description="HikariCP pool thread starvation — waiting=4, active=2",
+                    observed_at=_INC006_TIME,
+                    service="rke-backend",
+                    source="application logs",
+                ),
+                IncidentSymptom(
+                    description="Possible connection leak: connection held for 4200ms",
+                    observed_at=_INC006_TIME,
+                    service="rke-backend",
+                    source="application logs",
+                ),
+            ],
+            errors=[
+                IncidentError(
+                    error_type="java.sql.SQLTimeoutException",
+                    message="HikariPool-1 - Connection is not available, request timed out after 2500ms. "
+                            "Concurrent requests exhausted the pool.",
+                    service="rke-backend",
+                    endpoint="/api/sales/cash",
+                    count=3,
+                    trace_id="f7a3c91e2b845d62",
+                ),
+            ],
+        ),
+        fixture_log_path=_FIXTURES_DIR / "rke_pool_exhaustion_v2.jsonl",
+        expected_root_cause_keywords=["hikari", "pool", "exhausted", "connection", "timeout"],
+        expected_evidence_types=["LOG"],
+        expected_resolution_keywords=["pool", "size", "leak", "connection", "timeout"],
+        description="HikariCP pool exhaustion v2 — sales endpoint affected (INC-006 variant)",
+    )
+
+
 # Registry of all controlled incidents
 _REGISTRY: dict[str, RKEControlledIncident] = {
     RKEIncidentType.POSTGRES_FAILURE.value:   _make_postgres_failure(),
@@ -288,6 +360,7 @@ _REGISTRY: dict[str, RKEControlledIncident] = {
     RKEIncidentType.BACKEND_HTTP_500.value:   _make_backend_http_500(),
     RKEIncidentType.SLOW_API.value:           _make_slow_api(),
     RKEIncidentType.CONFIG_REGRESSION.value:  _make_config_regression(),
+    RKEIncidentType.POOL_EXHAUSTION_V2.value: _make_pool_exhaustion_v2(),
 }
 
 
